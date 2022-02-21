@@ -18,14 +18,18 @@
 """Tests for ceilometer agent manager"""
 import copy
 import datetime
-import fixtures
-import mock
+from unittest import mock
 
+import fixtures
 from keystoneauth1 import exceptions as ka_exceptions
 from stevedore import extension
 
 from ceilometer.compute import discovery as nova_discover
 from ceilometer.hardware import discovery
+from ceilometer.polling.dynamic_pollster import DynamicPollster
+from ceilometer.polling.dynamic_pollster import \
+    NonOpenStackApisPollsterDefinition
+from ceilometer.polling.dynamic_pollster import SingleMetricPollsterDefinitions
 from ceilometer.polling import manager
 from ceilometer.polling import plugin_base
 from ceilometer import sample
@@ -622,7 +626,7 @@ class TestPollingAgent(BaseAgent):
         pollster = list(polling_task.pollster_matches['test_polling'])[0]
         polling_task.poll_and_notify()
         LOG.debug.assert_called_with(
-            'Skip pollster %(name)s, no %(p_context)sresources found this '
+            'Skip pollster %(name)s, no %(p_context)s resources found this '
             'cycle', {'name': pollster.name, 'p_context': ''})
 
     @mock.patch('ceilometer.polling.manager.LOG')
@@ -637,7 +641,7 @@ class TestPollingAgent(BaseAgent):
         polling_task = list(self.mgr.setup_polling_tasks().values())[0]
         polling_task.poll_and_notify()
         LOG.debug.assert_called_with(
-            'Skip pollster %(name)s, no %(p_context)sresources found this '
+            'Skip pollster %(name)s, no %(p_context)s resources found this '
             'cycle', {'name': 'test', 'p_context': 'new '})
 
     @mock.patch('oslo_utils.timeutils.utcnow')
@@ -677,7 +681,6 @@ class TestPollingAgent(BaseAgent):
                 'sinks': ['test_sink']}],
             'sinks': [{
                 'name': 'test_sink',
-                'transformers': [],
                 'publishers': ["test"]}]
         }
         self.setup_polling(poll_cfg)
@@ -720,7 +723,6 @@ class TestPollingAgent(BaseAgent):
                 'sinks': ['test_sink']}],
             'sinks': [{
                 'name': 'test_sink',
-                'transformers': [],
                 'publishers': ["test"]}]
         }
         self.setup_polling(poll_cfg)
@@ -742,7 +744,6 @@ class TestPollingAgent(BaseAgent):
                 'sinks': ['test_sink']}],
             'sinks': [{
                 'name': 'test_sink',
-                'transformers': [],
                 'publishers': ["test"]}]
         }
         self.setup_polling(poll_cfg)
@@ -771,7 +772,6 @@ class TestPollingAgent(BaseAgent):
                 'sinks': ['test_sink']}],
             'sinks': [{
                 'name': 'test_sink',
-                'transformers': [],
                 'publishers': ["test"]}]
         }
         self.setup_polling(poll_cfg)
@@ -790,10 +790,6 @@ class TestPollingAgent(BaseAgent):
             dict(name=pollster.name,
                  res_list="[<NovaLikeServer: unknown-name>]",
                  source=source_name))
-
-    def test_batching_polled_samples_false_deprecated(self):
-        self.CONF.set_override('batch_polled_samples', False)
-        self._batching_samples(4, 4)
 
     def test_batching_polled_samples_disable_batch(self):
         self.CONF.set_override('batch_size', 0, group='polling')
@@ -816,7 +812,6 @@ class TestPollingAgent(BaseAgent):
                 'sinks': ['test_sink']}],
             'sinks': [{
                 'name': 'test_sink',
-                'transformers': [],
                 'publishers': ["test"]}]
         }
         self.setup_polling(poll_cfg)
@@ -899,3 +894,24 @@ class TestPollingAgentPartitioned(BaseAgent):
             mock.call('static_3'),
             mock.call('static_4'),
         ], any_order=True)
+
+    def test_instantiate_dynamic_pollster_standard_pollster(self):
+        pollster_definition_only_required_fields = {
+            'name': "test-pollster", 'sample_type': "gauge", 'unit': "test",
+            'value_attribute': "volume", 'endpoint_type': "test",
+            'url_path': "v1/test/endpoint/fake"}
+        pollster = DynamicPollster(pollster_definition_only_required_fields)
+
+        self.assertIsInstance(pollster.definitions,
+                              SingleMetricPollsterDefinitions)
+
+    def test_instantiate_dynamic_pollster_non_openstack_api(self):
+        pollster_definition_only_required_fields = {
+            'name': "test-pollster", 'sample_type': "gauge", 'unit': "test",
+            'value_attribute': "volume",
+            'url_path': "v1/test/endpoint/fake", 'module': "module-name",
+            'authentication_object': "authentication_object"}
+        pollster = DynamicPollster(pollster_definition_only_required_fields)
+
+        self.assertIsInstance(pollster.definitions,
+                              NonOpenStackApisPollsterDefinition)

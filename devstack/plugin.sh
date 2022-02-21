@@ -4,7 +4,7 @@
 # looks like
 #
 # [[local|localrc]]
-# enable_plugin ceilometer https://git.openstack.org/openstack/ceilometer
+# enable_plugin ceilometer https://opendev.org/openstack/ceilometer
 #
 # By default all ceilometer services are started (see devstack/settings)
 # except for the ceilometer-aipmi service. To disable a specific service
@@ -84,28 +84,6 @@ function _ceilometer_install_redis {
     pip_install_gr redis
 }
 
-# Configure mod_wsgi
-function _ceilometer_config_apache_wsgi {
-    sudo mkdir -p $CEILOMETER_WSGI_DIR
-
-    local ceilometer_apache_conf=$(apache_site_config_for ceilometer)
-    local apache_version=$(get_apache_version)
-    local venv_path=""
-
-    if [[ ${USE_VENV} = True ]]; then
-        venv_path="python-path=${PROJECT_VENV["ceilometer"]}/lib/$(python_version)/site-packages"
-    fi
-
-    sudo cp $CEILOMETER_DIR/devstack/apache-ceilometer.template $ceilometer_apache_conf
-    sudo sed -e "
-        s|%PORT%|$CEILOMETER_SERVICE_PORT|g;
-        s|%APACHE_NAME%|$APACHE_NAME|g;
-        s|%WSGIAPP%|$CEILOMETER_WSGI_DIR/app|g;
-        s|%USER%|$STACK_USER|g;
-        s|%VIRTUALENV%|$venv_path|g
-    " -i $ceilometer_apache_conf
-}
-
 # Install required services for coordination
 function _ceilometer_prepare_coordination {
     if echo $CEILOMETER_COORDINATION_URL | grep -q '^memcached:'; then
@@ -119,9 +97,8 @@ function _ceilometer_prepare_coordination {
 function _ceilometer_prepare_virt_drivers {
     # Only install virt drivers if we're running nova compute
     if is_service_enabled n-cpu ; then
-        if [[ "$VIRT_DRIVER" = 'libvirt' ]]; then
-            pip_install_gr libvirt-python
-        fi
+        # NOTE(tkajinam): pythonN-libvirt is installed using distro
+        # packages in devstack
 
         if [[ "$VIRT_DRIVER" = 'vsphere' ]]; then
             pip_install_gr oslo.vmware
@@ -193,7 +170,7 @@ function configure_gnocchi {
     write_uwsgi_config "$GNOCCHI_UWSGI_FILE" "$CEILOMETER_BIN_DIR/gnocchi-api" "/metric"
 
     if [ -n "$GNOCCHI_COORDINATOR_URL" ]; then
-        iniset $GNOCCHI_CONF storage coordination_url "$GNOCCHI_COORDINATOR_URL"
+        iniset $GNOCCHI_CONF coordination_url "$GNOCCHI_COORDINATOR_URL"
     fi
 }
 
@@ -229,12 +206,7 @@ function _ceilometer_configure_cache_backend {
 # Set configuration for storage backend.
 function _ceilometer_configure_storage_backend {
     if [ "$CEILOMETER_BACKEND" = 'none' ] ; then
-        # It's ok for the backend to be 'none', if panko is enabled. We do not
-        # combine this condition with the outer if statement, so that the else
-        # clause below is not executed.
-        if ! is_service_enabled panko-api; then
-            echo_summary "All Ceilometer backends seems disabled, set \$CEILOMETER_BACKEND to select one."
-        fi
+        echo_summary "All Ceilometer backends seems disabled, set \$CEILOMETER_BACKEND to select one."
     elif [ "$CEILOMETER_BACKEND" = 'gnocchi' ] ; then
         sed -i "s/gnocchi:\/\//gnocchi:\/\/?archive_policy=${GNOCCHI_ARCHIVE_POLICY}\&filter_project=gnocchi_swift/" $CEILOMETER_CONF_DIR/event_pipeline.yaml $CEILOMETER_CONF_DIR/pipeline.yaml
         ! [[ $DEVSTACK_PLUGINS =~ 'gnocchi' ]] && configure_gnocchi
@@ -242,12 +214,6 @@ function _ceilometer_configure_storage_backend {
         die $LINENO "Unable to configure unknown CEILOMETER_BACKEND $CEILOMETER_BACKEND"
     fi
 
-    # configure panko
-    if is_service_enabled panko-api; then
-        if ! grep -q 'panko' $CEILOMETER_CONF_DIR/event_pipeline.yaml ; then
-            echo '          - panko://' >> $CEILOMETER_CONF_DIR/event_pipeline.yaml
-        fi
-    fi
 }
 
 # Configure Ceilometer
@@ -262,7 +228,6 @@ function configure_ceilometer {
 
     if [[ -n "$CEILOMETER_COORDINATION_URL" ]]; then
         iniset $CEILOMETER_CONF coordination backend_url $CEILOMETER_COORDINATION_URL
-        iniset $CEILOMETER_CONF notification workload_partitioning True
         iniset $CEILOMETER_CONF notification workers $API_WORKERS
     fi
 

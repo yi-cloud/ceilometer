@@ -14,19 +14,18 @@
 # under the License.
 
 import os
+from unittest import mock
 import uuid
 
 import fixtures
 from gnocchiclient import exceptions as gnocchi_exc
 from keystoneauth1 import exceptions as ka_exceptions
-import mock
 from oslo_config import fixture as config_fixture
 from oslo_utils import fileutils
 from oslo_utils import fixture as utils_fixture
 from oslo_utils import netutils
 from oslo_utils import timeutils
 import requests
-import six
 from stevedore import extension
 import testscenarios
 
@@ -111,8 +110,8 @@ IMAGE_DELETE_START = models.Event(
 )
 
 
-VOLUME_DELETE_START = models.Event(
-    event_type=u'volume.delete.start',
+VOLUME_DELETE_END = models.Event(
+    event_type=u'volume.delete.end',
     traits=[models.Trait(u'availability_zone', 1, u'nova'),
             models.Trait(u'created_at', 1, u'2016-11-28T13:19:53+00:00'),
             models.Trait(u'display_name', 1, u'vol-001'),
@@ -151,6 +150,28 @@ FLOATINGIP_DELETE_END = models.Event(
     raw={},
     generated='2016-11-29T09:25:55.474710',
     message_id=u'a15b94ee-cb8e-4c71-9abe-14aa80055fb4'
+)
+
+VOLUME_TRANSFER_ACCEPT_END = models.Event(
+    event_type='volume.transfer.accept.end',
+    traits=[models.Trait(u'tenant_id', 1, '945e7d09220e4308abe4b3b734bf5fce>'),
+            models.Trait(u'project_id', 1, '85bc015f7a2342348593077a927c4aaa'),
+            models.Trait(u'user_id', 1, '945e7d09220e4308abe4b3b734bf5fce'),
+            models.Trait(u'service', 1, 'volume.controller-0'),
+            models.Trait(
+                u'request_id', 1, 'req-71dd1ae4-81ca-431a-b9fd-ac833eba889f'),
+            models.Trait(
+                u'resource_id', 1, '156b8d3f-ad99-429b-b84c-3f263fb2a801'),
+            models.Trait(
+                u'display_name', 1, 'test-vol'),
+            models.Trait(
+                u'type', 1, 'req-71dd1ae4-81ca-431a-b9fd-ac833eba889f'),
+            models.Trait(u'host', 1, 'hostgroup@tripleo_iscsi#tripleo_iscsi'),
+            models.Trait(u'created_at', 4, '2020-08-28 12:51:52'),
+            models.Trait(u'size', 2, 1)],
+    raw={},
+    generated='2020-08-28T12:52:22.930413',
+    message_id=u'9fc4ceee-d980-4098-a685-2ad660838ac1'
 )
 
 
@@ -206,6 +227,9 @@ class PublisherTest(base.BaseTestCase):
         self.useFixture(fixtures.MockPatch(
             'gnocchiclient.v1.client.Client',
             return_value=mock.Mock()))
+        self.useFixture(fixtures.MockPatch(
+            'ceilometer.keystone_client.get_session',
+            return_value=mock.Mock()))
         self.ks_client = ks_client
 
     def test_config_load(self):
@@ -256,8 +280,7 @@ class PublisherTest(base.BaseTestCase):
                     ]
 
         for content in contents:
-            if six.PY3:
-                content = content.encode('utf-8')
+            content = content.encode('utf-8')
 
             temp = fileutils.write_to_tempfile(content=content,
                                                prefix='gnocchi_resources',
@@ -319,6 +342,27 @@ class PublisherTest(base.BaseTestCase):
             source='openstack',
             timestamp='2014-05-08 20:23:48.028195',
             resource_id='randomid',
+            resource_metadata={}
+        )]
+        url = netutils.urlsplit("gnocchi://")
+        d = gnocchi.GnocchiPublisher(self.conf.conf, url)
+        d._already_checked_archive_policies = True
+        d.publish_samples(samples)
+        self.assertEqual(0, len(fake_batch.call_args[0][1]))
+
+    @mock.patch('ceilometer.publisher.gnocchi.GnocchiPublisher'
+                '.batch_measures')
+    def test_unhandled_meter_with_no_resource_id(self, fake_batch):
+        samples = [sample.Sample(
+            name='unknown.meter',
+            unit='GB',
+            type=sample.TYPE_GAUGE,
+            volume=2,
+            user_id='test_user',
+            project_id='test_project',
+            source='openstack',
+            timestamp='2014-05-08 20:23:48.028195',
+            resource_id=None,
             resource_metadata={}
         )]
         url = netutils.urlsplit("gnocchi://")
@@ -490,6 +534,9 @@ class PublisherWorkflowTest(base.BaseTestCase,
         self.useFixture(fixtures.MockPatch(
             'ceilometer.keystone_client.get_client',
             return_value=ks_client))
+        self.useFixture(fixtures.MockPatch(
+            'ceilometer.keystone_client.get_session',
+            return_value=ks_client))
         self.ks_client = ks_client
 
     @mock.patch('gnocchiclient.v1.client.Client')
@@ -543,7 +590,7 @@ class PublisherWorkflowTest(base.BaseTestCase,
 
         self.publisher.publish_events([INSTANCE_DELETE_START,
                                        IMAGE_DELETE_START,
-                                       VOLUME_DELETE_START,
+                                       VOLUME_DELETE_END,
                                        FLOATINGIP_DELETE_END])
         self.assertEqual(8, len(fakeclient.mock_calls))
         for call in expected_calls:
@@ -576,6 +623,28 @@ class PublisherWorkflowTest(base.BaseTestCase,
         for call in expected_calls:
             self.assertIn(call, fakeclient.mock_calls)
 
+    @mock.patch('gnocchiclient.v1.client.Client')
+    def test_update_event_workflow(self, fakeclient_cls):
+        url = netutils.urlsplit("gnocchi://")
+        self.publisher = gnocchi.GnocchiPublisher(self.conf.conf, url)
+
+        fakeclient = fakeclient_cls.return_value
+
+        now = timeutils.utcnow()
+        self.useFixture(utils_fixture.TimeFixture(now))
+
+        expected_calls = [
+            mock.call.resource.update(
+                'volume',
+                '156b8d3f-ad99-429b-b84c-3f263fb2a801',
+                {'project_id': '85bc015f7a2342348593077a927c4aaa'}),
+        ]
+
+        self.publisher.publish_events([VOLUME_TRANSFER_ACCEPT_END])
+        self.assertEqual(1, len(fakeclient.mock_calls))
+        for call in expected_calls:
+            self.assertIn(call, fakeclient.mock_calls)
+
     @mock.patch('ceilometer.publisher.gnocchi.LOG')
     @mock.patch('gnocchiclient.v1.client.Client')
     def test_workflow(self, fakeclient_cls, logger):
@@ -587,8 +656,24 @@ class PublisherWorkflowTest(base.BaseTestCase,
         gnocchi_id = uuid.uuid4()
 
         expected_calls = [
-            mock.call.archive_policy.get("ceilometer-low"),
-            mock.call.archive_policy.get("ceilometer-low-rate"),
+            mock.call.archive_policy.create({"name": "ceilometer-low",
+                                             "back_window": 0,
+                                             "aggregation_methods": ["mean"],
+                                             "definition": mock.ANY}),
+            mock.call.archive_policy.create({"name": "ceilometer-low-rate",
+                                             "back_window": 0,
+                                             "aggregation_methods": [
+                                                 "mean", "rate:mean"],
+                                             "definition": mock.ANY}),
+            mock.call.archive_policy.create({"name": "ceilometer-high",
+                                             "back_window": 0,
+                                             "aggregation_methods": ["mean"],
+                                             "definition": mock.ANY}),
+            mock.call.archive_policy.create({"name": "ceilometer-high-rate",
+                                             "back_window": 0,
+                                             "aggregation_methods": [
+                                                 "mean", "rate:mean"],
+                                             "definition": mock.ANY}),
             mock.call.metric.batch_resources_metrics_measures(
                 {resource_id: {metric_name: self.metric_attributes}},
                 create_metrics=True)
@@ -596,6 +681,8 @@ class PublisherWorkflowTest(base.BaseTestCase,
         expected_debug = [
             mock.call('filtered project found: %s',
                       'a2d42c23-d518-46b6-96ab-3fba2e146859'),
+            mock.call('Processing sample [%s] for resource ID [%s].',
+                      self.sample, resource_id),
         ]
 
         measures_posted = False

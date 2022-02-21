@@ -12,12 +12,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import mock
+from unittest import mock
+
 from oslotest import base
 
 from ceilometer.ipmi.platform import ipmi_sensor
+from ceilometer.privsep import ipmitool
 from ceilometer.tests.unit.ipmi.platform import fake_utils
-from ceilometer import utils
 
 
 class TestIPMISensor(base.BaseTestCase):
@@ -25,7 +26,7 @@ class TestIPMISensor(base.BaseTestCase):
     def setUp(self):
         super(TestIPMISensor, self).setUp()
 
-        utils.execute = mock.Mock(side_effect=fake_utils.execute_with_nm_v2)
+        ipmitool.ipmi = mock.Mock(side_effect=fake_utils.execute_with_nm_v2)
         self.ipmi = ipmi_sensor.IPMISensor()
 
     @classmethod
@@ -93,7 +94,7 @@ class TestNonIPMISensor(base.BaseTestCase):
     def setUp(self):
         super(TestNonIPMISensor, self).setUp()
 
-        utils.execute = mock.Mock(side_effect=fake_utils.execute_without_ipmi)
+        ipmitool.ipmi = mock.Mock(side_effect=fake_utils.execute_without_ipmi)
         self.ipmi = ipmi_sensor.IPMISensor()
 
     @classmethod

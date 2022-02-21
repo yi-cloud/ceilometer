@@ -27,8 +27,7 @@ OPTS = [
     cfg.StrOpt('hypervisor_inspector',
                default='libvirt',
                help='Inspector to use for inspecting the hypervisor layer. '
-                    'Known inspectors are libvirt, hyperv, vsphere '
-                    'and xenapi.'),
+                    'Known inspectors are libvirt, hyperv, and vsphere.'),
 ]
 
 
@@ -82,7 +81,8 @@ InterfaceStats = collections.namedtuple('InterfaceStats',
                                          'rx_bytes', 'tx_bytes',
                                          'rx_packets', 'tx_packets',
                                          'rx_drop', 'tx_drop',
-                                         'rx_errors', 'tx_errors'])
+                                         'rx_errors', 'tx_errors',
+                                         'rx_bytes_delta', 'tx_bytes_delta'])
 
 
 # Named tuple representing vNIC rate statistics.

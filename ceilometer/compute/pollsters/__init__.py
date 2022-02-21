@@ -13,8 +13,8 @@
 # under the License.
 
 import collections
+from time import monotonic as now
 
-import monotonic
 from oslo_log import log
 from oslo_utils import timeutils
 
@@ -47,21 +47,21 @@ class GenericComputePollster(plugin_base.PollsterBase):
 
     def setup_environment(self):
         super(GenericComputePollster, self).setup_environment()
-        self.inspector = self._get_inspector(self.conf)
+        self.inspector = GenericComputePollster._get_inspector(self.conf)
 
     @staticmethod
     def aggregate_method(stats):
         # Don't aggregate anything by default
         return stats
 
-    @classmethod
-    def _get_inspector(cls, conf):
+    @staticmethod
+    def _get_inspector(conf):
         # FIXME(sileht): This doesn't looks threadsafe...
         try:
-            inspector = cls._inspector
+            inspector = GenericComputePollster._inspector
         except AttributeError:
             inspector = virt_inspector.get_hypervisor_inspector(conf)
-            cls._inspector = inspector
+            GenericComputePollster._inspector = inspector
         return inspector
 
     @property
@@ -94,9 +94,9 @@ class GenericComputePollster(plugin_base.PollsterBase):
         if instance.id not in cache[self.inspector_method]:
             result = getattr(self.inspector, self.inspector_method)(
                 instance, duration)
-            polled_time = monotonic.monotonic()
+            polled_time = now()
             # Ensure we don't cache an iterator
-            if isinstance(result, collections.Iterable):
+            if isinstance(result, collections.abc.Iterable):
                 result = list(result)
             else:
                 result = [result]

@@ -18,7 +18,7 @@
 from keystoneauth1 import exceptions
 from oslo_config import cfg
 from oslo_log import log
-import six.moves.urllib.parse as urlparse
+from urllib import parse as urlparse
 
 from ceilometer import keystone_client
 from ceilometer.polling import plugin_base
@@ -134,16 +134,16 @@ class ContainersSizePollster(_Base):
         for tenant, bucket_info in self._iter_accounts(manager.keystone,
                                                        cache, resources):
             for it in bucket_info['buckets']:
-                    yield sample.Sample(
-                        name='radosgw.containers.objects.size',
-                        type=sample.TYPE_GAUGE,
-                        volume=int(it.size * 1024),
-                        unit='B',
-                        user_id=None,
-                        project_id=tenant,
-                        resource_id=tenant + '/' + it.name,
-                        resource_metadata=None,
-                    )
+                yield sample.Sample(
+                    name='radosgw.containers.objects.size',
+                    type=sample.TYPE_GAUGE,
+                    volume=int(it.size * 1024),
+                    unit='B',
+                    user_id=None,
+                    project_id=tenant,
+                    resource_id=tenant + '/' + it.name,
+                    resource_metadata=None,
+                )
 
 
 class ObjectsSizePollster(_Base):

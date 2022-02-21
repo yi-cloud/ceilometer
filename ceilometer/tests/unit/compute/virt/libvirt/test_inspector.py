@@ -11,11 +11,10 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-"""Tests for libvirt inspector.
-"""
+"""Tests for libvirt inspector."""
+from unittest import mock
 
 import fixtures
-import mock
 from oslo_utils import units
 from oslotest import base
 
@@ -242,7 +241,9 @@ class TestLibvirtInspection(base.BaseTestCase):
             self.assertEqual('vnet2', vnic2.name)
             self.assertEqual('fa:16:3e:96:33:f0', vnic2.mac)
             self.assertIsNone(vnic2.fref)
-            self.assertEqual(dict(), vnic2.parameters)
+            self.assertEqual(
+                {'interfaceid': None, 'bridge': 'qbr420008b3-7c'},
+                vnic2.parameters)
             self.assertEqual(9, vnic2.rx_bytes)
             self.assertEqual(10, vnic2.rx_packets)
             self.assertEqual(11, vnic2.tx_bytes)
@@ -349,7 +350,7 @@ class TestLibvirtInspection(base.BaseTestCase):
 
             self.assertEqual(1, len(disks))
             self.assertEqual('vda', disks[0].device)
-            self.assertEqual(1, disks[0].capacity)
+            self.assertEqual(3, disks[0].capacity)
             self.assertEqual(2, disks[0].allocation)
             self.assertEqual(3, disks[0].physical)
 

@@ -14,9 +14,7 @@
 # under the License.
 
 from oslo_log import log
-import six
-from six import moves
-from six.moves.urllib import parse as urlparse
+from urllib import parse as urlparse
 
 from ceilometer.network.statistics import driver
 from ceilometer.network.statistics.opendaylight import client
@@ -28,7 +26,7 @@ LOG = log.getLogger(__name__)
 def _get_properties(properties, prefix='properties'):
     resource_meta = {}
     if properties is not None:
-        for k, v in six.iteritems(properties):
+        for k, v in properties.items():
             value = v['value']
             key = prefix + '_' + k
             if 'name' in v:
@@ -140,7 +138,7 @@ class OpenDayLightDriver(driver.Driver):
                 container_data['user_links'] = user_links
                 for user_link_row in user_links_raw['userLinks']:
                     user_link = {}
-                    for k, v in six.iteritems(user_link_row):
+                    for k, v in user_link_row.items():
                         if (k == "dstNodeConnector" or
                                 k == "srcNodeConnector"):
                             port_raw, node_raw = v.split('@')
@@ -191,7 +189,7 @@ class OpenDayLightDriver(driver.Driver):
         data = self._prepare_cache(endpoint, params, cache)
 
         samples = []
-        for name, value in six.iteritems(data):
+        for name, value in data.items():
             for sample in iter(extractor, value):
                 if sample is not None:
                     # set controller name and container name
@@ -284,7 +282,7 @@ class OpenDayLightDriver(driver.Driver):
             break
 
         # link status to hosts
-        for hosts, status in moves.zip(
+        for hosts, status in zip(
                 [data['active_hosts'], data['inactive_hosts']],
                 ['active', 'inactive']):
             for host_config in hosts['hostConfig']:
@@ -413,11 +411,11 @@ class OpenDayLightDriver(driver.Driver):
         """
         val_iter, key_func = None, None
         if isinstance(value, dict):
-            val_iter = six.iteritems(value)
-            key_func = lambda k: key_base + '.' + k if key_base else k
+            val_iter = value.items()
+            key_func = lambda k: key_base + '.' + k if key_base else k  # noqa
         elif isinstance(value, (tuple, list)):
             val_iter = enumerate(value)
-            key_func = lambda k: key_base + '[%d]' % k
+            key_func = lambda k: key_base + '[%d]' % k  # noqa: E731
 
         if val_iter:
             for k, v in val_iter:

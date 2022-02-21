@@ -38,7 +38,7 @@ can send alerts when user defined rules are broken. Lastly, Panko_ is the event
 storage project designed to capture document-oriented data such as logs and
 system event actions.
 
-.. _Gnocchi: http://gnocchi.xyz/
+.. _Gnocchi: https://gnocchi.osci.io/
 .. _Aodh: https://docs.openstack.org/aodh/latest/
 .. _Panko: https://docs.openstack.org/panko/latest/
 
@@ -59,9 +59,9 @@ How is data collected?
 
 The Ceilometer project created 2 methods to collect data:
 
-1. :term:`Notification agent` which takes messages generated on the
+1. :term:`notification agent` which takes messages generated on the
    notification bus and transforms them into Ceilometer samples or events.
-2. :term:`Polling agent`, will poll some API or other tool to collect
+2. :term:`polling agent`, will poll some API or other tool to collect
    information at a regular interval. The polling approach may impose
    significant on the API services so should only be used on optimised
    endpoints.
@@ -164,7 +164,7 @@ Publishing the data
 
    This figure shows how a sample can be published to multiple destinations.
 
-Currently, processed data can be published using 8 different transports:
+Currently, processed data can be published using different transport options:
 
 1. gnocchi, which publishes samples/events to Gnocchi API;
 2. notifier, a notification based publisher which pushes samples to a message
@@ -174,8 +174,9 @@ Currently, processed data can be published using 8 different transports:
 5. file, which publishes samples to a file with specified name and location;
 6. zaqar, a multi-tenant cloud messaging and notification service for web and
    mobile developers;
-7. https, which is http over SSL and targets a REST interface.
-8. prometheus, which publishes samples to Prometheus Pushgateway
+7. https, which is http over SSL and targets a REST interface;
+8. prometheus, which publishes samples to Prometheus Pushgateway;
+9. monasca, which publishes samples to the Monasca API.
 
 
 Storing/Accessing the data
@@ -183,6 +184,6 @@ Storing/Accessing the data
 
 Ceilometer is designed solely to generate and normalise cloud data. The data
 created by Ceilometer can be pushed to any number of target using publishers
-mentioned in :ref:`pipeline-publishers` section. The recommended workflow is to
+mentioned in `pipeline-publishers` section. The recommended workflow is to
 push data to Gnocchi_ for efficient time-series storage and resource lifecycle
 tracking.

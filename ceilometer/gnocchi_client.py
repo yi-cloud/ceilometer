@@ -31,10 +31,17 @@ def get_gnocchiclient(conf, request_timeout=None):
         pool_maxsize=conf.max_parallel_requests)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
+    interface = conf[group].interface
+    region_name = conf[group].region_name
+    gnocchi_url = session.get_endpoint(service_type='metric',
+                                       service_name='gnocchi',
+                                       interface=interface,
+                                       region_name=region_name)
     return client.Client(
         '1', session, adapter_options={'connect_retries': 3,
-                                       'interface': conf[group].interface,
-                                       'region_name': conf[group].region_name})
+                                       'interface': interface,
+                                       'region_name': region_name,
+                                       'endpoint_override': gnocchi_url})
 
 
 # NOTE(sileht): This is the initial resource types created in Gnocchi
@@ -60,22 +67,16 @@ resources_initial = {
                          "required": True},
         "server_group": {"type": "string", "min_length": 0, "max_length": 255,
                          "required": False},
-        "cluster_id": {"type": "string", "min_length": 0, "max_length": 255,
-                         "required": False},
     },
     "instance_disk": {
         "name": {"type": "string", "min_length": 0, "max_length": 255,
                  "required": True},
         "instance_id": {"type": "uuid", "required": True},
-        "cluster_id": {"type": "string", "min_length": 0, "max_length": 255,
-                         "required": False},
     },
     "instance_network_interface": {
         "name": {"type": "string", "min_length": 0, "max_length": 255,
                  "required": True},
         "instance_id": {"type": "uuid", "required": True},
-        "cluster_id": {"type": "string", "min_length": 0, "max_length": 255,
-                         "required": False},
     },
     "volume": {
         "display_name": {"type": "string", "min_length": 0, "max_length": 255,
@@ -245,30 +246,6 @@ resources_update_operations = [
      "data": [{
          "attributes": {}
      }]},
-    {"desc": "add cluster_id to instance",
-     "type": "update_attribute_type",
-     "resource_type": "instance",
-     "data": [{
-         "op": "add",
-         "path": "/attributes/cluster_id",
-         "value": {"type": "string", "min_length": 0, "max_length": 255, "required": False}},
-     ]},
-    {"desc": "add cluster_id to instance_disk",
-     "type": "update_attribute_type",
-     "resource_type": "instance_disk",
-     "data": [{
-         "op": "add",
-         "path": "/attributes/cluster_id",
-         "value": {"type": "string", "min_length": 0, "max_length": 255, "required": False}},
-     ]},
-    {"desc": "add cluster_id to instance_network_interface",
-     "type": "update_attribute_type",
-     "resource_type": "instance_network_interface",
-     "data": [{
-         "op": "add",
-         "path": "/attributes/cluster_id",
-         "value": {"type": "string", "min_length": 0, "max_length": 255, "required": False}},
-     ]},
 ]
 
 # NOTE(sileht): We use LooseVersion because pbr can generate invalid
@@ -281,13 +258,13 @@ def upgrade_resource_types(conf):
 
     gnocchi_version = version.LooseVersion(gnocchi.build.get())
     if gnocchi_version < REQUIRED_VERSION:
-        raise Exception("required gnocchi version is %s, got %s",
-                        REQUIRED_VERSION, gnocchi_version)
+        raise Exception("required gnocchi version is %s, got %s" %
+                        (REQUIRED_VERSION, gnocchi_version))
 
     for name, attributes in resources_initial.items():
         try:
             gnocchi.resource_type.get(name=name)
-        except gnocchi_exc.ResourceTypeNotFound:
+        except (gnocchi_exc.ResourceTypeNotFound, gnocchi_exc.NotFound):
             rt = {'name': name, 'attributes': attributes}
             gnocchi.resource_type.create(resource_type=rt)
 
@@ -304,7 +281,7 @@ def upgrade_resource_types(conf):
         elif ops['type'] == 'create_resource_type':
             try:
                 gnocchi.resource_type.get(name=ops['resource_type'])
-            except gnocchi_exc.ResourceTypeNotFound:
+            except (gnocchi_exc.ResourceTypeNotFound, gnocchi_exc.NotFound):
                 rt = {'name': ops['resource_type'],
                       'attributes': ops['data'][0]['attributes']}
                 gnocchi.resource_type.create(resource_type=rt)

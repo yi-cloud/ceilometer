@@ -25,8 +25,7 @@ from oslo_log import log
 import oslo_messaging
 from oslo_utils import encodeutils
 from oslo_utils import excutils
-import six
-import six.moves.urllib.parse as urlparse
+from urllib import parse as urlparse
 
 from ceilometer.i18n import _
 from ceilometer import messaging
@@ -41,11 +40,13 @@ NOTIFIER_OPTS = [
                default='metering',
                help='The topic that ceilometer uses for metering '
                'notifications.',
+               deprecated_for_removal=True,
                ),
     cfg.StrOpt('event_topic',
                default='event',
                help='The topic that ceilometer uses for event '
                'notifications.',
+               deprecated_for_removal=True,
                ),
     cfg.StrOpt('telemetry_driver',
                default='messagingv2',
@@ -68,8 +69,7 @@ def raise_delivery_failure(exc):
                               cause=exc)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class MessagingPublisher(publisher.ConfigPublisherBase):
+class MessagingPublisher(publisher.ConfigPublisherBase, metaclass=abc.ABCMeta):
 
     def __init__(self, conf, parsed_url):
         super(MessagingPublisher, self).__init__(conf, parsed_url)
@@ -100,7 +100,7 @@ class MessagingPublisher(publisher.ConfigPublisherBase):
     def publish_samples(self, samples):
         """Publish samples on RPC.
 
-        :param samples: Samples from pipeline after transformation.
+        :param samples: Samples from pipeline.
 
         """
 
@@ -110,9 +110,11 @@ class MessagingPublisher(publisher.ConfigPublisherBase):
             for sample in samples
         ]
         topic = self.conf.publisher_notifier.metering_topic
-        self.local_queue.append((topic, meters))
+        with self.queue_lock:
+            self.local_queue.append((topic, meters))
 
         if self.per_meter_topic:
+            queue_per_meter_topic = []
             for meter_name, meter_list in itertools.groupby(
                     sorted(meters, key=operator.itemgetter('counter_name')),
                     operator.itemgetter('counter_name')):
@@ -120,7 +122,9 @@ class MessagingPublisher(publisher.ConfigPublisherBase):
                 topic_name = topic + '.' + meter_name
                 LOG.debug('Publishing %(m)d samples on %(n)s',
                           {'m': len(meter_list), 'n': topic_name})
-                self.local_queue.append((topic_name, meter_list))
+                queue_per_meter_topic.append((topic_name, meter_list))
+            with self.queue_lock:
+                self.local_queue.extend(queue_per_meter_topic)
 
         self.flush()
 
@@ -172,13 +176,14 @@ class MessagingPublisher(publisher.ConfigPublisherBase):
     def publish_events(self, events):
         """Send an event message for publishing
 
-        :param events: events from pipeline after transformation
+        :param events: events from pipeline.
         """
         ev_list = [utils.message_from_event(
             event, self.conf.publisher.telemetry_secret) for event in events]
 
         topic = self.conf.publisher_notifier.event_topic
-        self.local_queue.append((topic, ev_list))
+        with self.queue_lock:
+            self.local_queue.append((topic, ev_list))
         self.flush()
 
     @abc.abstractmethod
@@ -216,7 +221,6 @@ class NotifierPublisher(MessagingPublisher):
                 - notifier_sink
         sinks:
             - name: notifier_sink
-              transformers:
               publishers:
                 - notifier://[notifier_ip]:[notifier_port]?topic=[topic]&
                   driver=driver&max_retry=100

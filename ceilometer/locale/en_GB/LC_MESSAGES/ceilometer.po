@@ -6,25 +6,23 @@
 # Andi Chandler <andi@gowling.com>, 2013-2014
 # Andreas Jaeger <jaegerandi@gmail.com>, 2016. #zanata
 # Andi Chandler <andi@gowling.com>, 2017. #zanata
+# Andi Chandler <andi@gowling.com>, 2019. #zanata
+# Andi Chandler <andi@gowling.com>, 2020. #zanata
 msgid ""
 msgstr ""
 "Project-Id-Version: ceilometer VERSION\n"
 "Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
-"POT-Creation-Date: 2018-03-01 19:09+0000\n"
+"POT-Creation-Date: 2020-09-29 07:18+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2017-11-30 10:30+0000\n"
+"PO-Revision-Date: 2020-10-03 09:52+0000\n"
 "Last-Translator: Andi Chandler <andi@gowling.com>\n"
 "Language: en_GB\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Generated-By: Babel 2.0\n"
 "X-Generator: Zanata 4.3.3\n"
 "Language-Team: English (United Kingdom)\n"
-
-#, python-format
-msgid "Arithmetic transformer must use at least one meter in expression '%s'"
-msgstr "Arithmetic transformer must use at least one meter in expression '%s'"
 
 #, python-format
 msgid "Could not connect to XenAPI: %s"
@@ -44,14 +42,19 @@ msgstr "Dropping Notification %(type)s (uuid:%(msgid)s)"
 
 #, python-format
 msgid ""
+"Error from libvirt while checking blockStats, This may not be harmful, but "
+"please check : %(ex)s"
+msgstr ""
+"Error from libvirt while checking blockStats, This may not be harmful, but "
+"please check : %(ex)s"
+
+#, python-format
+msgid ""
 "Error from libvirt while looking up instance <name=%(name)s, id=%(id)s>: "
 "[Error Code %(error_code)s] %(ex)s"
 msgstr ""
 "Error from libvirt while looking up instance <name=%(name)s, id=%(id)s>: "
 "[Error Code %(error_code)s] %(ex)s"
-
-msgid "Expression evaluated to a NaN value!"
-msgstr "Expression evaluated to a NaN value!"
 
 #, python-format
 msgid ""
@@ -167,13 +170,12 @@ msgstr "Required field %s not specified"
 msgid "Required fields %s not specified"
 msgstr "Required fields %s not specified"
 
+msgid "Sample Check"
+msgstr "Sample Check"
+
 #, python-format
 msgid "The field 'fields' is required for %s"
 msgstr "The field 'fields' is required for %s"
-
-#, python-format
-msgid "Unable to evaluate expression %(expr)s: %(exc)s"
-msgstr "Unable to evaluate expression %(expr)s: %(exc)s"
 
 msgid "Unable to send sample over UDP"
 msgstr "Unable to send sample over UDP"
@@ -231,16 +233,12 @@ msgstr "Wrong sensor type"
 msgid "YAML error reading Definitions file %(file)s"
 msgstr "YAML error reading Definitions file %(file)s"
 
-#, python-format
-msgid "dropping out of time order sample: %s"
-msgstr "dropping out of time order sample: %s"
-
-#, python-format
-msgid "dropping sample with no predecessor: %s"
-msgstr "dropping sample with no predecessor: %s"
-
 msgid "ipmitool output length mismatch"
 msgstr "ipmitool output length mismatch"
+
+#, python-format
+msgid "monasca_client: using %s as Monasca endpoint"
+msgstr "monasca_client: using %s as Monasca endpoint"
 
 msgid "parse IPMI sensor data failed,No data retrieved from given input"
 msgstr "parse IPMI sensor data failed,No data retrieved from given input"

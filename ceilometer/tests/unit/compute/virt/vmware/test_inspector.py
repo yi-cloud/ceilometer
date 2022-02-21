@@ -16,13 +16,15 @@
 Tests for VMware vSphere inspector.
 """
 
-import mock
+from unittest import mock
+
 from oslo_vmware import api
 from oslotest import base
 
 from ceilometer.compute.virt import inspector as virt_inspector
 from ceilometer.compute.virt.vmware import inspector as vsphere_inspector
 from ceilometer import service
+from ceilometer.tests.unit.compute.virt.vmware import fake as vmware_fake
 
 
 class TestVsphereInspection(base.BaseTestCase):
@@ -48,8 +50,8 @@ class TestVsphereInspection(base.BaseTestCase):
                           mock.MagicMock())
 
     def test_instance_poweredOff(self):
-        test_vm_mobj = mock.MagicMock()
-        test_vm_mobj.value = "vm-21"
+        test_vm_mobj = vmware_fake.ManagedObjectReference('VirtualMachine',
+                                                          value='vm-21')
         test_vm_mobj_powerState = "poweredOff"
 
         ops_mock = self._inspector._ops
@@ -60,8 +62,8 @@ class TestVsphereInspection(base.BaseTestCase):
                           mock.MagicMock())
 
     def test_instance_poweredOn(self):
-        test_vm_mobj = mock.MagicMock()
-        test_vm_mobj.value = "vm-21"
+        test_vm_mobj = vmware_fake.ManagedObjectReference('VirtualMachine',
+                                                          value='vm-21')
         test_vm_mobj_powerState = "poweredOn"
 
         ops_mock = self._inspector._ops
@@ -72,8 +74,8 @@ class TestVsphereInspection(base.BaseTestCase):
         self.assertEqual(test_vm_mobj.value, vm_mobj.value)
 
     def test_inspect_memory_usage(self):
-        test_vm_mobj = mock.MagicMock()
-        test_vm_mobj.value = "vm-21"
+        test_vm_mobj = vmware_fake.ManagedObjectReference('VirtualMachine',
+                                                          value='vm-21')
         fake_perf_counter_id = 'fake_perf_counter_id'
         fake_memory_value = 1024.0
 
@@ -88,8 +90,8 @@ class TestVsphereInspection(base.BaseTestCase):
         self.assertEqual(1.0, stats.memory_usage)
 
     def test_inspect_cpu_util(self):
-        test_vm_mobj = mock.MagicMock()
-        test_vm_mobj.value = "vm-21"
+        test_vm_mobj = vmware_fake.ManagedObjectReference('VirtualMachine',
+                                                          value='vm-21')
         fake_perf_counter_id = 'fake_perf_counter_id'
         fake_cpu_util_value = 60.0
 

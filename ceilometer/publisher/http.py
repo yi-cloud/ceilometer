@@ -19,7 +19,7 @@ from oslo_log import log
 from oslo_utils import strutils
 import requests
 from requests import adapters
-from six.moves.urllib import parse as urlparse
+from urllib import parse as urlparse
 
 from ceilometer import publisher
 
@@ -63,7 +63,6 @@ class HttpPublisher(publisher.ConfigPublisherBase):
     the sinks like the following:
 
           - name: event_sink
-            transformers:
             publishers:
                 - http://host:80/path?timeout=1&max_retries=2
 
@@ -101,7 +100,8 @@ class HttpPublisher(publisher.ConfigPublisherBase):
         password = parsed_url.password
         if username:
             self.client_auth = (username, password)
-            netloc = parsed_url.netloc.replace(username+':'+password+'@', '')
+            netloc = parsed_url.netloc.replace(username + ':' + password + '@',
+                                               '')
         else:
             self.client_auth = None
             netloc = parsed_url.netloc
@@ -140,7 +140,7 @@ class HttpPublisher(publisher.ConfigPublisherBase):
             scheme,
             netloc,
             parsed_url.path,
-            urlparse.urlencode(params),
+            urlparse.urlencode(params, doseq=True),
             parsed_url.fragment])
 
         self.session.mount(self.target, adapters.HTTPAdapter(**kwargs))

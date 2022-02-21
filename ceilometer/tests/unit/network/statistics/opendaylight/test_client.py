@@ -12,12 +12,12 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import mock
+from unittest import mock
+
 from oslo_config import fixture as config_fixture
 from oslotest import base
 from requests import auth as req_auth
-import six
-from six.moves.urllib import parse as urlparse
+from urllib import parse as urlparse
 
 from ceilometer.i18n import _
 from ceilometer.network.statistics.opendaylight import client
@@ -146,7 +146,7 @@ class TestClientHTTPBasicAuth(base.BaseTestCase):
                 _('OpenDaylight API returned %(status)s %(reason)s') %
                 {'status': self.resp.status_code,
                  'reason': self.resp.reason},
-                six.text_type(e))
+                str(e))
 
     def test_other_error(self):
 

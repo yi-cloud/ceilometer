@@ -30,7 +30,7 @@ LOG = logging.getLogger(__name__)
 OPTS = [
     cfg.StrOpt('libvirt_type',
                default='kvm',
-               choices=['kvm', 'lxc', 'qemu', 'uml', 'xen'],
+               choices=['kvm', 'lxc', 'qemu', 'uml'],
                help='Libvirt domain type.'),
     cfg.StrOpt('libvirt_uri',
                default='',
@@ -38,7 +38,7 @@ OPTS = [
                     '(which is dependent on libvirt_type).'),
 ]
 
-LIBVIRT_PER_TYPE_URIS = dict(uml='uml:///system', xen='xen:///', lxc='lxc:///')
+LIBVIRT_PER_TYPE_URIS = dict(uml='uml:///system', lxc='lxc:///')
 
 
 # We don't use the libvirt constants in case of libvirt is not available
@@ -78,6 +78,12 @@ LIBVIRT_STATUS = {
     VIR_DOMAIN_PMSUSPENDED: 'suspended',
 }
 
+# NOTE(pas-ha) in the order from newest to oldest
+NOVA_METADATA_VERSIONS = (
+    "http://openstack.org/xmlns/libvirt/nova/1.1",
+    "http://openstack.org/xmlns/libvirt/nova/1.0",
+)
+
 
 def new_libvirt_connection(conf):
     if not libvirt:
@@ -108,7 +114,8 @@ def is_disconnection_exception(e):
 
 retry_on_disconnect = tenacity.retry(
     retry=tenacity.retry_if_exception(is_disconnection_exception),
-    stop=tenacity.stop_after_attempt(2))
+    stop=tenacity.stop_after_attempt(3),
+    wait=tenacity.wait_exponential(multiplier=3, min=1, max=60))
 
 
 def raise_nodata_if_unsupported(method):
@@ -124,3 +131,31 @@ def raise_nodata_if_unsupported(method):
                         "error": e}
             raise virt_inspector.NoDataException(msg)
     return inner
+
+
+@retry_on_disconnect
+def instance_metadata(domain):
+    xml_string = None
+    last_error = None
+    for meta_version in NOVA_METADATA_VERSIONS:
+        try:
+            xml_string = domain.metadata(
+                libvirt.VIR_DOMAIN_METADATA_ELEMENT, meta_version)
+            break
+        except libvirt.libvirtError as exc:
+            if exc.get_error_code() == libvirt.VIR_ERR_NO_DOMAIN_METADATA:
+                LOG.warning("Failed to find metadata %s in domain %s",
+                            meta_version, domain.UUIDString())
+                last_error = exc
+                continue
+            elif is_disconnection_exception(exc):
+                # Re-raise the exception so it's handled and retries
+                raise
+            last_error = exc
+
+    if xml_string is None:
+        LOG.error(
+            "Fail to get domain uuid %s metadata, libvirtError: %s",
+            domain.UUIDString(), last_error
+        )
+    return xml_string

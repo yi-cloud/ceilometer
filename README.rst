@@ -9,8 +9,7 @@ Overview
 
 Ceilometer is a data collection service that collects event and metering
 data by monitoring notifications sent from OpenStack services. It publishes
-collected data to various targets including data stores
-and message queues.
+collected data to various targets including data stores and message queues.
 
 Ceilometer is distributed under the terms of the Apache
 License, Version 2.0. The full terms and conditions of this
@@ -36,18 +35,22 @@ Code Repository
 
 Bug Tracking
 ------------
-- Bugs: https://bugs.launchpad.net/ceilometer
+- Bugs: https://bugs.launchpad.net/ceilometer/
+
+Release Notes
+-------------
+- Server: https://docs.openstack.org/releasenotes/ceilometer/
 
 IRC
 ---
-IRC Channel: #openstack-telemetry on `Freenode`_.
+IRC Channel: #openstack-telemetry on `OFTC`_.
 
 Mailinglist
 -----------
-Project use http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-dev
+Project use http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-discuss
 as the mailinglist. Please use tag ``[Ceilometer]`` in the subject for new
 threads.
 
 
-.. _Freenode: https://freenode.net/
+.. _OFTC: https://oftc.net/
 

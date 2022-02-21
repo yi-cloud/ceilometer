@@ -13,12 +13,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import mock
-import six
-import yaml
+from unittest import mock
 
 import fixtures
 from oslo_utils import fileutils
+import yaml
 
 from ceilometer import declarative
 from ceilometer.hardware.inspector import base as inspector_base
@@ -64,6 +63,17 @@ class TestMeterDefinition(test_base.BaseTestCase):
             generic.MeterDefinition(cfg)
         except declarative.MeterDefinitionException as e:
             self.assertEqual("Unrecognized type value invalid",
+                             e.brief_message)
+
+    def test_config_missing_unit_field(self):
+        cfg = dict(name='hardware.cpu.user',
+                   snmp_inspector={"matching_type": "type_exact",
+                                   "oid": "1.3.6.1.4.1.2021.11.50.0",
+                                   "type": "int"})
+        try:
+            generic.MeterDefinition(cfg)
+        except declarative.MeterDefinitionException as e:
+            self.assertEqual("Missing field unit",
                              e.brief_message)
 
     @mock.patch('ceilometer.hardware.pollsters.generic.LOG')
@@ -117,8 +127,7 @@ class TestGenericPollsters(test_base.BaseTestCase):
         self.pollster = generic.GenericHardwareDeclarativePollster(self.conf)
 
     def _setup_meter_def_file(self, cfg):
-        if six.PY3:
-            cfg = cfg.encode('utf-8')
+        cfg = cfg.encode('utf-8')
         meter_cfg_file = fileutils.write_to_tempfile(content=cfg,
                                                      prefix="snmp",
                                                      suffix="yaml")

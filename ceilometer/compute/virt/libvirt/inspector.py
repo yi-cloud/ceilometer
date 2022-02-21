@@ -17,7 +17,6 @@
 from lxml import etree
 from oslo_log import log as logging
 from oslo_utils import units
-import six
 
 try:
     import libvirt
@@ -38,6 +37,7 @@ class LibvirtInspector(virt_inspector.Inspector):
         super(LibvirtInspector, self).__init__(conf)
         # NOTE(sileht): create a connection on startup
         self.connection
+        self.cache = {}
 
     @property
     def connection(self):
@@ -59,7 +59,7 @@ class LibvirtInspector(virt_inspector.Inspector):
                                  'ex': ex}
             raise virt_inspector.InstanceNotFoundException(msg)
         except Exception as ex:
-            raise virt_inspector.InspectorException(six.text_type(ex))
+            raise virt_inspector.InspectorException(str(ex))
 
     def _get_domain_not_shut_off_or_raise(self, instance):
         instance_name = util.instance_name(instance)
@@ -97,7 +97,47 @@ class LibvirtInspector(virt_inspector.Inspector):
 
             params = dict((p.get('name').lower(), p.get('value'))
                           for p in iface.findall('filterref/parameter'))
+
+            # Extract interface ID
+            try:
+                interfaceid = iface.find('virtualport').find(
+                    'parameters').get('interfaceid')
+            except AttributeError:
+                interfaceid = None
+
+            # Extract source bridge
+            try:
+                bridge = iface.find('source').get('bridge')
+            except AttributeError:
+                bridge = None
+
+            params['interfaceid'] = interfaceid
+            params['bridge'] = bridge
+
             dom_stats = domain.interfaceStats(name)
+
+            # Retrieve previous values
+            prev = self.cache.get(name)
+
+            # Store values for next call
+            self.cache[name] = dom_stats
+
+            if prev:
+                # Compute stats
+                rx_delta = dom_stats[0] - prev[0]
+                tx_delta = dom_stats[4] - prev[4]
+
+                # Avoid negative values
+                if rx_delta < 0:
+                    rx_delta = dom_stats[0]
+                if tx_delta < 0:
+                    tx_delta = dom_stats[4]
+            else:
+                LOG.debug('No delta meter predecessor for %s / %s' %
+                          (instance.id, name))
+                rx_delta = 0
+                tx_delta = 0
+
             yield virt_inspector.InterfaceStats(name=name,
                                                 mac=mac_address,
                                                 fref=fref,
@@ -106,10 +146,12 @@ class LibvirtInspector(virt_inspector.Inspector):
                                                 rx_packets=dom_stats[1],
                                                 rx_errors=dom_stats[2],
                                                 rx_drop=dom_stats[3],
+                                                rx_bytes_delta=rx_delta,
                                                 tx_bytes=dom_stats[4],
                                                 tx_packets=dom_stats[5],
                                                 tx_errors=dom_stats[6],
-                                                tx_drop=dom_stats[7])
+                                                tx_drop=dom_stats[7],
+                                                tx_bytes_delta=tx_delta)
 
     @staticmethod
     def _get_disk_devices(domain):
@@ -122,23 +164,35 @@ class LibvirtInspector(virt_inspector.Inspector):
     def inspect_disks(self, instance, duration):
         domain = self._get_domain_not_shut_off_or_raise(instance)
         for device in self._get_disk_devices(domain):
-            block_stats = domain.blockStats(device)
-            block_stats_flags = domain.blockStatsFlags(device, 0)
-            yield virt_inspector.DiskStats(
-                device=device,
-                read_requests=block_stats[0], read_bytes=block_stats[1],
-                write_requests=block_stats[2], write_bytes=block_stats[3],
-                errors=block_stats[4],
-                wr_total_times=block_stats_flags['wr_total_times'],
-                rd_total_times=block_stats_flags['rd_total_times'])
+            try:
+                block_stats = domain.blockStats(device)
+                block_stats_flags = domain.blockStatsFlags(device, 0)
+                yield virt_inspector.DiskStats(
+                    device=device,
+                    read_requests=block_stats[0], read_bytes=block_stats[1],
+                    write_requests=block_stats[2], write_bytes=block_stats[3],
+                    errors=block_stats[4],
+                    wr_total_times=block_stats_flags['wr_total_times'],
+                    rd_total_times=block_stats_flags['rd_total_times'])
+            except libvirt.libvirtError as ex:
+                # raised error even if lock is acquired while live migration,
+                # even it looks normal.
+                LOG.warning(_("Error from libvirt while checking blockStats, "
+                              "This may not be harmful, but please check : "
+                              "%(ex)s") % {'ex': ex})
+                pass
 
     @libvirt_utils.retry_on_disconnect
     def inspect_disk_info(self, instance, duration):
         domain = self._get_domain_not_shut_off_or_raise(instance)
         for device in self._get_disk_devices(domain):
             block_info = domain.blockInfo(device)
+            # if vm mount cdrom, libvirt will align by 4K bytes, capacity may
+            # be smaller than physical, avoid with this.
+            # https://libvirt.org/html/libvirt-libvirt-domain.html
+            disk_capacity = max(block_info[0], block_info[2])
             yield virt_inspector.DiskInfo(device=device,
-                                          capacity=block_info[0],
+                                          capacity=disk_capacity,
                                           allocation=block_info[1],
                                           physical=block_info[2])
 
@@ -173,7 +227,7 @@ class LibvirtInspector(virt_inspector.Inspector):
         # have holes according to
         # https://libvirt.org/git/?p=libvirt.git;a=blob;f=src/libvirt-domain.c
         # virConnectGetAllDomainStats()
-        for vcpu in six.moves.range(stats.get('vcpu.maximum', 0)):
+        for vcpu in range(stats.get('vcpu.maximum', 0)):
             try:
                 cpu_time += (stats.get('vcpu.%s.time' % vcpu) +
                              stats.get('vcpu.%s.wait' % vcpu))

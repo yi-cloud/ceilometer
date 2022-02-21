@@ -12,12 +12,11 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-"""Tests for ceilometer/publisher/udp.py
-"""
+"""Tests for ceilometer/publisher/udp.py"""
 
 import datetime
+from unittest import mock
 
-import mock
 import msgpack
 from oslo_utils import netutils
 from oslotest import base
@@ -126,7 +125,7 @@ class TestUDPPublisher(base.BaseTestCase):
         sent_counters = []
 
         for data, dest in self.data_sent:
-            counter = msgpack.loads(data, encoding="utf-8")
+            counter = msgpack.loads(data, raw=False)
             sent_counters.append(counter)
 
             # Check destination

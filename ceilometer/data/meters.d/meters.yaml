@@ -113,12 +113,14 @@ metric:
   - name: 'volume.size'
     event_type:
       - 'volume.exists'
+      - 'volume.retype'
       - 'volume.create.*'
       - 'volume.delete.*'
       - 'volume.resize.*'
       - 'volume.attach.*'
       - 'volume.detach.*'
       - 'volume.update.*'
+      - 'volume.manage.*'
     type: 'gauge'
     unit: 'GB'
     volume: $.payload.size
@@ -136,6 +138,7 @@ metric:
       - 'snapshot.exists'
       - 'snapshot.create.*'
       - 'snapshot.delete.*'
+      - 'snapshot.manage.*'
     type: 'gauge'
     unit: 'GB'
     volume: $.payload.volume_size

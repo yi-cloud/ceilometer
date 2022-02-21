@@ -23,12 +23,13 @@ Events vs. Samples
 ~~~~~~~~~~~~~~~~~~
 
 In addition to Meters, and related Sample data, Ceilometer can also process
-Events.  While a Sample represents a single numeric datapoint, driving a Meter
-that represents the changes in that value over time, an Event represents the
-state of an object in an OpenStack service (such as an Instance in Nova, or
-an Image in Glance) at a point in time when something of interest has occurred.
-This can include non-numeric data, such as an instance's flavor, or network
-address.
+Events.
+
+While a Sample represents a single numeric datapoint, driving a Meter that
+represents the changes in that value over time, an Event represents the state
+of an object in an OpenStack service (such as an Instance in Nova, or an Image
+in Glance) at a point in time when something of interest has occurred. This can
+include non-numeric data, such as an instance's flavor, or network address.
 
 In general, Events let you know when something has changed about an
 object in an OpenStack system, such as the resize of an instance, or creation
@@ -43,7 +44,7 @@ Event Structure
 ~~~~~~~~~~~~~~~
 
 To facilitate downstream processing (billing and/or aggregation), a
-:doc:`minimum required data set and format <format>` has been defined for
+`minimum required data set and format <format>` has been defined for
 services, however events generally contain the following information:
 
 event_type

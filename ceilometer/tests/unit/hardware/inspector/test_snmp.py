@@ -12,13 +12,12 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-"""Tests for ceilometer/hardware/inspector/snmp/inspector.py
-"""
+"""Tests for ceilometer/hardware/inspector/snmp/inspector.py"""
+from unittest import mock
+
 import fixtures
-import mock
 from oslo_utils import netutils
 from pysnmp.proto import rfc1905
-import six
 
 from ceilometer.hardware.inspector import snmp
 from ceilometer.tests import base as test_base
@@ -45,7 +44,7 @@ class FakeCommandGenerator(object):
             for oid in oids
             if oid not in emptyOIDs
         ]
-        for emptyOID, exc in six.iteritems(emptyOIDs):
+        for emptyOID, exc in emptyOIDs.items():
             if emptyOID in oids:
                 varBinds += [(FakeObjectName(emptyOID), exc)]
         return (None, None, 0, varBinds)

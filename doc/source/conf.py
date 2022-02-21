@@ -93,7 +93,7 @@ exclude_patterns = ['**/#*', '**~', '**/#*#']
 show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'native'
 
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
@@ -111,9 +111,11 @@ nitpicky = False
 html_theme = 'openstackdocs'
 
 # openstackdocstheme options
-repository_name = 'openstack/ceilometer'
-bug_project = 'ceilometer'
-bug_tag = ''
+openstackdocs_repo_name = 'openstack/ceilometer'
+openstackdocs_pdf_link = True
+openstackdocs_auto_name = False
+openstackdocs_bug_project = 'ceilometer'
+openstackdocs_bug_tag = ''
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
@@ -137,12 +139,7 @@ bug_tag = ''
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
-
-# If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
-# using the given strftime format.
-# Must set this variable to include year, month, day, hours, and minutes.
-html_last_updated_fmt = '%Y-%m-%d %H:%M'
+#html_static_path = ['_static']
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
@@ -187,22 +184,26 @@ htmlhelp_basename = 'Ceilometerdoc'
 
 # -- Options for LaTeX output -------------------------------------------------
 
+latex_domain_indices = False
+
 latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #'papersize': 'letterpaper',
-
-    # The font size ('10pt', '11pt' or '12pt').
-    #'pointsize': '10pt',
-
-    # Additional stuff for the LaTeX preamble.
-    #'preamble': '',
+    'makeindex': '',
+    'printindex': '',
+    'preamble': r'\setcounter{tocdepth}{3}',
+    'maxlistdepth': '10',
 }
+
+# Disable usage of xindy https://bugzilla.redhat.com/show_bug.cgi?id=1643664
+latex_use_xindy = False
+
+# Disable smartquotes, they don't work in latex
+smartquotes_excludes = {'builders': ['latex']}
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ('index', 'Ceilometer.tex', u'Ceilometer Documentation',
+    ('index', 'doc-ceilometer.tex', u'Ceilometer Documentation',
      u'OpenStack Foundation', 'manual'),
 ]
 

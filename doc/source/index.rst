@@ -17,7 +17,7 @@
 Welcome to Ceilometer's documentation!
 ======================================
 
-The :term:`Ceilometer` project is a data collection service that provides the
+The `Ceilometer` project is a data collection service that provides the
 ability to normalise and transform data across all current OpenStack core
 components with work underway to support future OpenStack components.
 
@@ -38,6 +38,7 @@ Overview
    contributor/index
    admin/index
    configuration/index
+   cli/index
 
 Appendix
 ========
@@ -50,9 +51,11 @@ Appendix
 
 .. update index
 
-Indices and tables
-==================
+.. only:: html
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   Indices and tables
+   ==================
+
+   * :ref:`genindex`
+   * :ref:`modindex`
+   * :ref:`search`

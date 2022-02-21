@@ -18,6 +18,29 @@ archive_policies:
     definition:
       - granularity: 5 minutes
         timespan: 30 days
+  - name: ceilometer-high
+    aggregation_methods:
+      - mean
+    back_window: 0
+    definition:
+      - granularity: 1 second
+        timespan: 1 hour
+      - granularity: 1 minute
+        timespan: 1 day
+      - granularity: 1 hour
+        timespan: 365 days
+  - name: ceilometer-high-rate
+    aggregation_methods:
+      - mean
+      - rate:mean
+    back_window: 0
+    definition:
+      - granularity: 1 second
+        timespan: 1 hour
+      - granularity: 1 minute
+        timespan: 1 day
+      - granularity: 1 hour
+        timespan: 365 days
 
 resources:
   - resource_type: identity
@@ -63,23 +86,9 @@ resources:
       vcpus:
       cpu:
         archive_policy_name: ceilometer-low-rate
-      cpu.delta:
-      cpu_util:
       cpu_l3_cache:
       disk.root.size:
       disk.ephemeral.size:
-      disk.read.requests:
-        archive_policy_name: ceilometer-low-rate
-      disk.read.requests.rate:
-      disk.write.requests:
-        archive_policy_name: ceilometer-low-rate
-      disk.write.requests.rate:
-      disk.read.bytes:
-        archive_policy_name: ceilometer-low-rate
-      disk.read.bytes.rate:
-      disk.write.bytes:
-        archive_policy_name: ceilometer-low-rate
-      disk.write.bytes.rate:
       disk.latency:
       disk.iops:
       disk.capacity:
@@ -100,7 +109,6 @@ resources:
       flavor_id: resource_metadata.(instance_flavor_id|(flavor.id)|flavor_id)
       flavor_name: resource_metadata.(instance_type|(flavor.name)|flavor_name)
       server_group: resource_metadata.user_metadata.server_group
-      cluster_id: resource_metadata.user_metadata.cluster_id
     event_delete: compute.instance.delete.start
     event_create: compute.instance.create.end
     event_attributes:
@@ -118,8 +126,6 @@ resources:
 
   - resource_type: instance_network_interface
     metrics:
-      network.outgoing.packets.rate:
-      network.incoming.packets.rate:
       network.outgoing.packets:
         archive_policy_name: ceilometer-low-rate
       network.incoming.packets:
@@ -132,8 +138,6 @@ resources:
         archive_policy_name: ceilometer-low-rate
       network.incoming.packets.error:
         archive_policy_name: ceilometer-low-rate
-      network.outgoing.bytes.rate:
-      network.incoming.bytes.rate:
       network.outgoing.bytes:
         archive_policy_name: ceilometer-low-rate
       network.incoming.bytes:
@@ -141,22 +145,17 @@ resources:
     attributes:
       name: resource_metadata.vnic_name
       instance_id: resource_metadata.instance_id
-      cluster_id: resource_metadata.user_metadata.cluster_id
 
   - resource_type: instance_disk
     metrics:
       disk.device.read.requests:
         archive_policy_name: ceilometer-low-rate
-      disk.device.read.requests.rate:
       disk.device.write.requests:
         archive_policy_name: ceilometer-low-rate
-      disk.device.write.requests.rate:
       disk.device.read.bytes:
         archive_policy_name: ceilometer-low-rate
-      disk.device.read.bytes.rate:
       disk.device.write.bytes:
         archive_policy_name: ceilometer-low-rate
-      disk.device.write.bytes.rate:
       disk.device.latency:
       disk.device.read.latency:
       disk.device.write.latency:
@@ -167,7 +166,6 @@ resources:
     attributes:
       name: resource_metadata.disk_name
       instance_id: resource_metadata.instance_id
-      cluster_id: resource_metadata.user_metadata.cluster_id
 
   - resource_type: image
     metrics:
@@ -239,16 +237,23 @@ resources:
       snapshot.size:
       volume.snapshot.size:
       volume.backup.size:
+      backup.size:
+      volume.manage_existing.start:
+      volume.manage_existing.end:
+      volume.manage_existing_snapshot.start:
+      volume.manage_existing_snapshot.end:
     attributes:
       display_name: resource_metadata.(display_name|name)
       volume_type: resource_metadata.volume_type
       image_id: resource_metadata.image_id
       instance_id: resource_metadata.instance_id
     event_delete:
-      - volume.delete.start
-      - snapshot.delete.start
+      - volume.delete.end
+      - snapshot.delete.end
+    event_update: volume.transfer.accept.end
     event_attributes:
       id: resource_id
+      project_id: project_id
 
   - resource_type: volume_provider
     metrics:
@@ -274,6 +279,20 @@ resources:
       hardware.cpu.load.5min:
       hardware.cpu.load.15min:
       hardware.cpu.util:
+      hardware.cpu.user:
+        archive_policy_name: ceilometer-low-rate
+      hardware.cpu.nice:
+        archive_policy_name: ceilometer-low-rate
+      hardware.cpu.system:
+        archive_policy_name: ceilometer-low-rate
+      hardware.cpu.idle:
+        archive_policy_name: ceilometer-low-rate
+      hardware.cpu.wait:
+        archive_policy_name: ceilometer-low-rate
+      hardware.cpu.kernel:
+        archive_policy_name: ceilometer-low-rate
+      hardware.cpu.interrupt:
+        archive_policy_name: ceilometer-low-rate
       hardware.memory.total:
       hardware.memory.used:
       hardware.memory.swap.total:
@@ -394,3 +413,4 @@ resources:
       network.services.lb.loadbalancer:
       network.services.lb.total.connections:
       network.services.lb.active.connections:
+

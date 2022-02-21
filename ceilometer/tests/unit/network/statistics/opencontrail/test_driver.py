@@ -12,9 +12,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import mock
+from unittest import mock
+
 from oslotest import base
-from six.moves.urllib import parse as urlparse
+from urllib import parse as urlparse
 
 from ceilometer.network.statistics.opencontrail import driver
 from ceilometer import service

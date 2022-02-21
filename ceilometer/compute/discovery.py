@@ -24,7 +24,6 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import timeutils
 
-
 try:
     import libvirt
 except ImportError:
@@ -129,25 +128,17 @@ class InstanceDiscovery(plugin_base.DiscoveryBase):
     @cachetools.cachedmethod(operator.attrgetter('_flavor_cache'))
     def get_flavor_id(self, name):
         try:
-            return self.nova_cli.nova_client.flavors.find(name=name).id
+            return self.nova_cli.nova_client.flavors.find(
+                name=name, is_public=None).id
         except exceptions.NotFound:
-            return None
+            return name
 
     @libvirt_utils.retry_on_disconnect
     def discover_libvirt_polling(self, manager, param=None):
         instances = []
         for domain in self.connection.listAllDomains():
-            try:
-                xml_string = domain.metadata(
-                    libvirt.VIR_DOMAIN_METADATA_ELEMENT,
-                    "http://openstack.org/xmlns/libvirt/nova/1.0")
-            except libvirt.libvirtError as e:
-                if libvirt_utils.is_disconnection_exception(e):
-                    # Re-raise the exception so it's handled and retries
-                    raise
-                LOG.error(
-                    "Fail to get domain uuid %s metadata, libvirtError: %s",
-                    domain.UUIDString(), e.message)
+            xml_string = libvirt_utils.instance_metadata(domain)
+            if xml_string is None:
                 continue
 
             full_xml = etree.fromstring(domain.XMLDesc())
@@ -188,7 +179,7 @@ class InstanceDiscovery(plugin_base.DiscoveryBase):
                 image_xml = metadata_xml.find("./root[@type='image']")
                 image = ({'id': image_xml.attrib['uuid']}
                          if image_xml is not None else None)
-            except AttributeError as e:
+            except AttributeError:
                 LOG.error(
                     "Fail to get domain uuid %s metadata: "
                     "metadata was missing expected attributes",

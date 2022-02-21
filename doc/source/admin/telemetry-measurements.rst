@@ -103,83 +103,25 @@ The following meters are collected for OpenStack Compute.
 | cpu       | Cumu\ | ns   | instance | Pollster | Libvirt,| CPU time used    |
 |           | lative|      | ID       |          | Hyper-V |                  |
 +-----------+-------+------+----------+----------+---------+------------------+
-| cpu.delta | Delta | ns   | instance | Pollster | Libvirt,| CPU time used s\ |
-|           |       |      | ID       |          | Hyper-V | ince previous d\ |
-|           |       |      |          |          |         | atapoint         |
-+-----------+-------+------+----------+----------+---------+------------------+
-| cpu_util  | Gauge | %    | instance | Pollster | LibVirt,| Average CPU      |
-|           |       |      | ID       |          | vSphere,| utilization      |
-|           |       |      |          |          | XenAPI  |                  |
-+-----------+-------+------+----------+----------+---------+------------------+
 | vcpus     | Gauge | vcpu | instance | Notific\ | Libvirt,| Number of virtual|
 |           |       |      | ID       | ation    | Hyper-V | CPUs allocated to|
 |           |       |      |          |          |         | the instance     |
-+-----------+-------+------+----------+----------+---------+------------------+
-| disk.read\| Cumul\| req\ | instance | Pollster | Libvirt,| Number of read   |
-| .requests | ative | uest | ID       |          | Hyper-V | requests         |
-+-----------+-------+------+----------+----------+---------+------------------+
-| disk.read\| Gauge | requ\| instance | Pollster | Libvirt,| Average rate of  |
-| .requests\|       | est/s| ID       |          | Hyper-V,| read requests    |
-| .rate     |       |      |          |          | vSphere |                  |
-+-----------+-------+------+----------+----------+---------+------------------+
-| disk.writ\| Cumul\| req\ | instance | Pollster | Libvirt,| Number of write  |
-| e.requests| ative | uest | ID       |          | Hyper-V | requests         |
-+-----------+-------+------+----------+----------+---------+------------------+
-| disk.writ\| Gauge | requ\| instance | Pollster | Libvirt,| Average rate of  |
-| e.request\|       | est/s| ID       |          | Hyper-V,| write requests   |
-| s.rate    |       |      |          |          | vSphere |                  |
-+-----------+-------+------+----------+----------+---------+------------------+
-| disk.read\| Cumu\ | B    | instance | Pollster | Libvirt,| Volume of reads  |
-| .bytes    | lative|      | ID       |          | Hyper-V |                  |
-+-----------+-------+------+----------+----------+---------+------------------+
-| disk.read\| Gauge | B/s  | instance | Pollster | Libvirt,| Average rate of  |
-| .bytes.\  |       |      | ID       |          | Hyper-V,| reads            |
-| rate      |       |      |          |          | vSphere,|                  |
-|           |       |      |          |          | XenAPI  |                  |
-+-----------+-------+------+----------+----------+---------+------------------+
-| disk.writ\| Cumu\ | B    | instance | Pollster | Libvirt,| Volume of writes |
-| e.bytes   | lative|      | ID       |          | Hyper-V |                  |
-+-----------+-------+------+----------+----------+---------+------------------+
-| disk.writ\| Gauge | B/s  | instance | Pollster | Libvirt,| Average rate of  |
-| e.bytes.\ |       |      | ID       |          | Hyper-V,| writes           |
-| rate      |       |      |          |          | vSphere,|                  |
-|           |       |      |          |          | XenAPI  |                  |
 +-----------+-------+------+----------+----------+---------+------------------+
 | disk.dev\ | Cumu\ | req\ | disk ID  | Pollster | Libvirt,| Number of read   |
 | ice.read\ | lative| uest |          |          | Hyper-V | requests         |
 | .requests |       |      |          |          |         |                  |
 +-----------+-------+------+----------+----------+---------+------------------+
-| disk.dev\ | Gauge | requ\| disk ID  | Pollster | Libvirt,| Average rate of  |
-| ice.read\ |       | est/s|          |          | Hyper-V,| read requests    |
-| .requests\|       |      |          |          | vSphere |                  |
-| .rate     |       |      |          |          |         |                  |
-+-----------+-------+------+----------+----------+---------+------------------+
 | disk.dev\ | Cumu\ | req\ | disk ID  | Pollster | Libvirt,| Number of write  |
 | ice.write\| lative| uest |          |          | Hyper-V | requests         |
 | .requests |       |      |          |          |         |                  |
-+-----------+-------+------+----------+----------+---------+------------------+
-| disk.dev\ | Gauge | requ\| disk ID  | Pollster | Libvirt,| Average rate of  |
-| ice.write\|       | est/s|          |          | Hyper-V,| write requests   |
-| .requests\|       |      |          |          | vSphere |                  |
-| .rate     |       |      |          |          |         |                  |
 +-----------+-------+------+----------+----------+---------+------------------+
 | disk.dev\ | Cumu\ | B    | disk ID  | Pollster | Libvirt,| Volume of reads  |
 | ice.read\ | lative|      |          |          | Hyper-V |                  |
 | .bytes    |       |      |          |          |         |                  |
 +-----------+-------+------+----------+----------+---------+------------------+
-| disk.dev\ | Gauge | B/s  | disk ID  | Pollster | Libvirt,| Average rate of  |
-| ice.read\ |       |      |          |          | Hyper-V,| reads            |
-| .bytes    |       |      |          |          | vSphere |                  |
-| .rate     |       |      |          |          |         |                  |
-+-----------+-------+------+----------+----------+---------+------------------+
 | disk.dev\ | Cumu\ | B    | disk ID  | Pollster | Libvirt,| Volume of writes |
 | ice.write\| lative|      |          |          | Hyper-V |                  |
 | .bytes    |       |      |          |          |         |                  |
-+-----------+-------+------+----------+----------+---------+------------------+
-| disk.dev\ | Gauge | B/s  | disk ID  | Pollster | Libvirt,| Average rate of  |
-| ice.write\|       |      |          |          | Hyper-V,| writes           |
-| .bytes    |       |      |          |          | vSphere |                  |
-| .rate     |       |      |          |          |         |                  |
 +-----------+-------+------+----------+----------+---------+------------------+
 | disk.root\| Gauge | GB   | instance | Notific\ | Libvirt,| Size of root disk|
 | .size     |       |      | ID       | ation    | Hyper-V |                  |
@@ -187,33 +129,12 @@ The following meters are collected for OpenStack Compute.
 | disk.ephe\| Gauge | GB   | instance | Notific\ | Libvirt,| Size of ephemeral|
 | meral.size|       |      | ID       | ation    | Hyper-V | disk             |
 +-----------+-------+------+----------+----------+---------+------------------+
-| disk.lat\ | Gauge | ms   | instance | Pollster | Hyper-V | Average disk la\ |
-| ency      |       |      | ID       |          |         | tency            |
-+-----------+-------+------+----------+----------+---------+------------------+
-| disk.iop\ | Gauge | coun\| instance | Pollster | Hyper-V | Average disk io\ |
-| s         |       | t/s  | ID       |          |         | ps               |
-+-----------+-------+------+----------+----------+---------+------------------+
 | disk.dev\ | Gauge | ms   | disk ID  | Pollster | Hyper-V | Average disk la\ |
 | ice.late\ |       |      |          |          |         | tency per device |
 | ncy       |       |      |          |          |         |                  |
 +-----------+-------+------+----------+----------+---------+------------------+
 | disk.dev\ | Gauge | coun\| disk ID  | Pollster | Hyper-V | Average disk io\ |
 | ice.iops  |       | t/s  |          |          |         | ps per device    |
-+-----------+-------+------+----------+----------+---------+------------------+
-| disk.cap\ | Gauge | B    | instance | Pollster | Libvirt | The amount of d\ |
-| acity     |       |      | ID       |          |         | isk that the in\ |
-|           |       |      |          |          |         | stance can see   |
-+-----------+-------+------+----------+----------+---------+------------------+
-| disk.all\ | Gauge | B    | instance | Pollster | Libvirt | The amount of d\ |
-| ocation   |       |      | ID       |          |         | isk occupied by  |
-|           |       |      |          |          |         | the instance o\  |
-|           |       |      |          |          |         | n the host mach\ |
-|           |       |      |          |          |         | ine              |
-+-----------+-------+------+----------+----------+---------+------------------+
-| disk.usa\ | Gauge | B    | instance | Pollster | Libvirt | The physical si\ |
-| ge        |       |      | ID       |          |         | ze in bytes of   |
-|           |       |      |          |          |         | the image conta\ |
-|           |       |      |          |          |         | iner on the host |
 +-----------+-------+------+----------+----------+---------+------------------+
 | disk.dev\ | Gauge | B    | disk ID  | Pollster | Libvirt | The amount of d\ |
 | ice.capa\ |       |      |          |          |         | isk per device   |
@@ -236,37 +157,17 @@ The following meters are collected for OpenStack Compute.
 | incoming.\| lative|      | ID       |          | Hyper-V | incoming bytes   |
 | bytes     |       |      |          |          |         |                  |
 +-----------+-------+------+----------+----------+---------+------------------+
-| network.\ | Gauge | B/s  | interface| Pollster | Libvirt,| Average rate of  |
-| incoming.\|       |      | ID       |          | Hyper-V,| incoming bytes   |
-| bytes.rate|       |      |          |          | vSphere,|                  |
-|           |       |      |          |          | XenAPI  |                  |
-+-----------+-------+------+----------+----------+---------+------------------+
 | network.\ | Cumu\ | B    | interface| Pollster | Libvirt,| Number of        |
 | outgoing\ | lative|      | ID       |          | Hyper-V | outgoing bytes   |
 | .bytes    |       |      |          |          |         |                  |
-+-----------+-------+------+----------+----------+---------+------------------+
-| network.\ | Gauge | B/s  | interface| Pollster | Libvirt,| Average rate of  |
-| outgoing.\|       |      | ID       |          | Hyper-V,| outgoing bytes   |
-| bytes.rate|       |      |          |          | vSphere,|                  |
-|           |       |      |          |          | XenAPI  |                  |
 +-----------+-------+------+----------+----------+---------+------------------+
 | network.\ | Cumu\ | pac\ | interface| Pollster | Libvirt,| Number of        |
 | incoming\ | lative| ket  | ID       |          | Hyper-V | incoming packets |
 | .packets  |       |      |          |          |         |                  |
 +-----------+-------+------+----------+----------+---------+------------------+
-| network.\ | Gauge | pack\| interface| Pollster | Libvirt,| Average rate of  |
-| incoming\ |       | et/s | ID       |          | Hyper-V,| incoming packets |
-| .packets\ |       |      |          |          | vSphere,|                  |
-| .rate     |       |      |          |          | XenAPI  |                  |
-+-----------+-------+------+----------+----------+---------+------------------+
 | network.\ | Cumu\ | pac\ | interface| Pollster | Libvirt,| Number of        |
 | outgoing\ | lative| ket  | ID       |          | Hyper-V | outgoing packets |
 | .packets  |       |      |          |          |         |                  |
-+-----------+-------+------+----------+----------+---------+------------------+
-| network.\ | Gauge | pac\ | interface| Pollster | Libvirt,| Average rate of  |
-| outgoing\ |       | ket/s| ID       |          | Hyper-V,| outgoing packets |
-| .packets\ |       |      |          |          | vSphere,|                  |
-| .rate     |       |      |          |          | XenAPI  |                  |
 +-----------+-------+------+----------+----------+---------+------------------+
 | **Meters added in the Newton release**                                      |
 +-----------+-------+------+----------+----------+---------+------------------+
@@ -353,50 +254,6 @@ The following meters are collected for OpenStack Compute.
 
     To enable libvirt ``disk.*`` support when running on RBD-backed shared
     storage, you need to install libvirt version 1.2.16+.
-
-The Telemetry service supports creating new meters by using transformers, but
-this is deprecated and discouraged to use. Among the meters gathered from
-libvirt and Hyper-V, there are a few which are derived from other meters. The
-list of meters that are created by using the ``rate_of_change`` transformer
-from the above table is the following:
-
--  cpu_util
-
--  cpu.delta
-
--  disk.read.requests.rate
-
--  disk.write.requests.rate
-
--  disk.read.bytes.rate
-
--  disk.write.bytes.rate
-
--  disk.device.read.requests.rate
-
--  disk.device.write.requests.rate
-
--  disk.device.read.bytes.rate
-
--  disk.device.write.bytes.rate
-
--  network.incoming.bytes.rate
-
--  network.outgoing.bytes.rate
-
--  network.incoming.packets.rate
-
--  network.outgoing.packets.rate
-
-.. note::
-
-    If storing data in Gnocchi, derived rate_of_change metrics are also
-    computed using Gnocchi in addition to Ceilometer transformers. It avoids
-    missing data when Ceilometer services restart.
-    To minimize Ceilometer memory requirements transformers can be disabled.
-    These ``rate_of_change`` meters are deprecated and will be removed in
-    default Ceilometer configuration in future release.
-
 
 OpenStack Compute is capable of collecting ``CPU`` related meters from
 the compute host machines. In order to use that you need to set the
@@ -564,9 +421,6 @@ SNMP:
 | hardware.cpu.load.\ | Gauge | proc\| host ID  | Pollster | CPU load in the  |
 | 15min               |       | ess  |          |          | past 15 minutes  |
 +---------------------+-------+------+----------+----------+------------------+
-| hardware.cpu.util   | Gauge | %    | host ID  | Pollster | cpu usage        |
-|                     |       |      |          |          | percentage       |
-+---------------------+-------+------+----------+----------+------------------+
 | hardware.disk.size\ | Gauge | KB   | disk ID  | Pollster | Total disk size  |
 | .total              |       |      |          |          |                  |
 +---------------------+-------+------+----------+----------+------------------+
@@ -620,9 +474,6 @@ SNMP:
 | ocks                |       |      |          |          | nt to block dev\ |
 |                     |       |      |          |          | ice              |
 +---------------------+-------+------+----------+----------+------------------+
-| hardware.system_st\ | Gauge | %    | host ID  | Pollster | CPU idle percen\ |
-| ats.cpu.idle        |       |      |          |          | tage             |
-+---------------------+-------+------+----------+----------+------------------+
 | **Meters added in the Queens release**                                      |
 +---------------------+-------+------+----------+----------+------------------+
 | hardware.disk.read.\| Gauge | B    | disk ID  | Pollster | Bytes read from  |
@@ -636,6 +487,25 @@ SNMP:
 +---------------------+-------+------+----------+----------+------------------+
 | hardware.disk.write\| Gauge | requ\| disk ID  | Pollster | Write requests to|
 | .requests           |       | ests |          |          | device since boot|
++---------------------+-------+------+----------+----------+------------------+
+| **Meters added in the Stein release**                                       |
++---------------------+-------+------+----------+----------+------------------+
+| hardware.cpu.user   | Gauge | tick | host ID  | Pollster | CPU user in tick |
++---------------------+-------+------+----------+----------+------------------+
+| hardware.cpu.system | Gauge | tick | host ID  | Pollster | CPU system in t\ |
+|                     |       |      |          |          | ick              |
++---------------------+-------+------+----------+----------+------------------+
+| hardware.cpu.nice   | Gauge | tick | host ID  | Pollster | CPU nice in tick |
++---------------------+-------+------+----------+----------+------------------+
+| hardware.cpu.idle   | Gauge | tick | host ID  | Pollster | CPU idle in tick |
++---------------------+-------+------+----------+----------+------------------+
+| hardware.cpu.wait   | Gauge | tick | host ID  | Pollster | CPU wait in tick |
++---------------------+-------+------+----------+----------+------------------+
+| hardware.cpu.kernel | Gauge | tick | host ID  | Pollster | CPU kernel in t\ |
+|                     |       |      |          |          | ick              |
++---------------------+-------+------+----------+----------+------------------+
+| hardware.cpu.inter\ | Gauge | tick | host ID  | Pollster | CPU interrupt i\ |
+| rupt                |       |      |          |          | n tick           |
 +---------------------+-------+------+----------+----------+------------------+
 
 OpenStack Image service

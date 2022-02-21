@@ -144,7 +144,7 @@ in the Identity service as Ceilometer discovers the exact path via the Identity
 service.
 
 More details on how to enable and configure gnocchi can be found on its
-`official documentation page <http://gnocchi.xyz>`__.
+`official documentation page <https://gnocchi.osci.io>`__.
 
 prometheus
 ``````````
@@ -168,13 +168,6 @@ You can read more `here <https://github.com/prometheus/pushgateway#about-timesta
 
 Due to this, this is not recommended to use this publisher for billing purpose
 as timestamps in Prometheus will not be exact.
-
-panko
-`````
-
-Event data in Ceilometer can be stored in panko which provides an HTTP REST
-interface to query system events in OpenStack. To push data to panko,
-set the publisher to ``panko://``.
 
 notifier
 ````````
@@ -213,6 +206,49 @@ The following customization options are available:
     default topic defined by ``metering_topic`` and ``event_topic`` options.
     This option can be used to support multiple consumers.
 
+monasca
+```````
+
+The monasca publisher can be used to send measurements to the Monasca API,
+where it will be stored with other metrics gathered by Monasca Agent. Data
+is accessible through the Monasca API and be transformed like other Monasca
+metrics.
+
+The pipeline sink is specified with a ``publishers:`` element of the form
+``- monasca://https://<your vip>/metrics/v2.0``
+
+Monasca API connection information is configured in the ceilometer.conf
+file in a [monasca] section::
+
+  [monasca]
+  auth_section = monasca_auth
+  enable_api_pagination = True
+  client_retry_interval = 60
+  client_max_retries = 5
+  monasca_mappings = <absolute path to monasca_field_definitions.yaml>
+
+  [monasca_auth]
+  auth_url = https://<vip to keystone instance>/identity
+  auth_type = password
+  username = <a Keystone user>
+  password = <password for user>
+  project_name = <project name, such as admin>
+  project_domain_id = <project domain ID, such as default>
+  user_domain_id = <user domain ID, such as default>
+  verify = <path to CA bundle in PEM format>
+  region_name = <region name, such as RegionOne>
+
+
+.. note::
+  The username specified should be for a Keystone user that has the
+  ``monasca_agent`` or ``monasca_user`` role enabled. For management purposes,
+  this may be the ceilometer user if the appropriate role is granted.
+
+For more detail and history of this publisher, see the
+`Ceilosca Wiki <https://wiki.openstack.org/wiki/Ceilosca>`__ and
+`monasca-ceilometer README
+<https://github.com/openstack/monasca-ceilometer>`__.
+
 udp
 ```
 
@@ -247,6 +283,10 @@ The following options are available for the ``file`` publisher:
     the newest data is always the one that is specified without any
     extensions.
 
+``json``
+    If this option is present, will force ceilometer to write json format
+    into the file.
+
 http
 ````
 
@@ -280,6 +320,5 @@ specified. A sample ``publishers`` section in the
 
    publishers:
        - gnocchi://
-       - panko://
        - udp://10.0.0.2:1234
        - notifier://?policy=drop&max_queue_length=512&topic=custom_target

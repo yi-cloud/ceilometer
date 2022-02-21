@@ -13,8 +13,6 @@
 """Common code for working with volumes
 """
 
-from __future__ import absolute_import
-
 from ceilometer.polling import plugin_base
 from ceilometer import sample
 
@@ -41,6 +39,7 @@ class VolumeSizePollster(_Base):
     FIELDS = ['name',
               'status',
               'volume_type',
+              'availability_zone',
               'os-vol-host-attr:host',
               'migration_status',
               'attachments',

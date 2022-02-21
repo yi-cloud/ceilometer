@@ -13,6 +13,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from collections import defaultdict
+import fnmatch
 import hashlib
 import itertools
 import json
@@ -24,11 +25,9 @@ import uuid
 from gnocchiclient import exceptions as gnocchi_exc
 from keystoneauth1 import exceptions as ka_exceptions
 from oslo_log import log
-from oslo_utils import fnmatch
 from oslo_utils import timeutils
-import six
-import six.moves.urllib.parse as urlparse
 from stevedore import extension
+from urllib import parse as urlparse
 
 from ceilometer import declarative
 from ceilometer import gnocchi_client
@@ -43,8 +42,7 @@ LOG = log.getLogger(__name__)
 
 def cache_key_mangler(key):
     """Construct an opaque cache key."""
-    if six.PY2:
-        key = key.encode('utf-8')
+
     return uuid.uuid5(CACHE_NAMESPACE, key).hex
 
 
@@ -53,10 +51,10 @@ EVENT_CREATE, EVENT_UPDATE, EVENT_DELETE = ("create", "update", "delete")
 
 class ResourcesDefinition(object):
 
-    MANDATORY_FIELDS = {'resource_type': six.string_types,
+    MANDATORY_FIELDS = {'resource_type': str,
                         'metrics': (dict, list)}
 
-    MANDATORY_EVENT_FIELDS = {'id': six.string_types}
+    MANDATORY_EVENT_FIELDS = {'id': str}
 
     def __init__(self, definition_cfg, archive_policy_default,
                  archive_policy_override, plugin_manager):
@@ -199,6 +197,7 @@ class GnocchiPublisher(publisher.ConfigPublisherBase):
         options = urlparse.parse_qs(parsed_url.query)
 
         self.filter_project = options.get('filter_project', ['service'])[-1]
+        self.filter_domain = options.get('filter_domain', ['Default'])[-1]
 
         resources_definition_file = options.get(
             'resources_definition_file', ['gnocchi_resources.yaml'])[-1]
@@ -252,7 +251,8 @@ class GnocchiPublisher(publisher.ConfigPublisherBase):
             pkg_resources.resource_filename(__name__,
                                             "data/gnocchi_resources.yaml"))
 
-        archive_policy_default = data.get("archive_policy_default", "low")
+        archive_policy_default = data.get("archive_policy_default",
+                                          "ceilometer-low")
         resource_defs = []
         for resource in data.get('resources', []):
             try:
@@ -261,18 +261,19 @@ class GnocchiPublisher(publisher.ConfigPublisherBase):
                     archive_policy_default,
                     archive_policy_override,
                     plugin_manager))
-            except Exception as exc:
-                LOG.error("Failed to load resource due to error %s" %
-                          exc)
+            except Exception:
+                LOG.error("Failed to load resource due to error",
+                          exc_info=True)
         return resource_defs, data.get("archive_policies", [])
 
     def ensures_archives_policies(self):
         if not self._already_configured_archive_policies:
             for ap in self.archive_policies_definition:
                 try:
-                    self._gnocchi.archive_policy.get(ap["name"])
-                except gnocchi_exc.ArchivePolicyNotFound:
                     self._gnocchi.archive_policy.create(ap)
+                except gnocchi_exc.ArchivePolicyAlreadyExists:
+                    # created in the meantime by another worker
+                    pass
             self._already_configured_archive_policies = True
 
     @property
@@ -283,7 +284,8 @@ class GnocchiPublisher(publisher.ConfigPublisherBase):
             if self._gnocchi_project_id is None:
                 try:
                     project = self._ks_client.projects.find(
-                        name=self.filter_project)
+                        name=self.filter_project,
+                        domain=self.filter_domain)
                 except ka_exceptions.NotFound:
                     LOG.warning('filtered project not found in keystone,'
                                 ' ignoring the filter_project '
@@ -332,11 +334,10 @@ class GnocchiPublisher(publisher.ConfigPublisherBase):
         gnocchi_data = {}
         measures = {}
         for resource_id, samples_of_resource in resource_grouped_samples:
-            # NOTE(sileht): / is forbidden by Gnocchi
-            resource_id = resource_id.replace('/', '_')
-
             for sample in samples_of_resource:
                 metric_name = sample.name
+                LOG.debug("Processing sample [%s] for resource ID [%s].",
+                          sample, resource_id)
                 rd = self.metric_map.get(metric_name)
                 if rd is None:
                     if metric_name not in self._already_logged_metric_names:
@@ -345,6 +346,8 @@ class GnocchiPublisher(publisher.ConfigPublisherBase):
                         self._already_logged_metric_names.add(metric_name)
                     continue
 
+                # NOTE(sileht): / is forbidden by Gnocchi
+                resource_id = resource_id.replace('/', '_')
                 if resource_id not in gnocchi_data:
                     gnocchi_data[resource_id] = {
                         'resource_type': rd.cfg['resource_type'],
@@ -368,9 +371,9 @@ class GnocchiPublisher(publisher.ConfigPublisherBase):
         try:
             self.batch_measures(measures, gnocchi_data)
         except gnocchi_exc.ClientException as e:
-            LOG.error(six.text_type(e))
+            LOG.error(str(e))
         except Exception as e:
-            LOG.error(six.text_type(e), exc_info=True)
+            LOG.error(str(e), exc_info=True)
 
         for info in gnocchi_data.values():
             resource = info["resource"]
@@ -382,9 +385,9 @@ class GnocchiPublisher(publisher.ConfigPublisherBase):
                 self._if_not_cached(resource_type, resource['id'],
                                     resource_extra)
             except gnocchi_exc.ClientException as e:
-                LOG.error(six.text_type(e))
+                LOG.error(str(e))
             except Exception as e:
-                LOG.error(six.text_type(e), exc_info=True)
+                LOG.error(str(e), exc_info=True)
 
     @staticmethod
     def _extract_resources_from_error(e, resource_infos):
@@ -417,7 +420,7 @@ class GnocchiPublisher(publisher.ConfigPublisherBase):
                     pass
                 except gnocchi_exc.ClientException as e:
                     LOG.error('Error creating resource %(id)s: %(err)s',
-                              {'id': resource['id'], 'err': six.text_type(e)})
+                              {'id': resource['id'], 'err': str(e)})
                     # We cannot post measures for this resource
                     # and we can't patch it later
                     del measures[resource['id']]
@@ -490,6 +493,23 @@ class GnocchiPublisher(publisher.ConfigPublisherBase):
                 self._delete_event(rd, event)
             if operation == EVENT_CREATE:
                 self._create_event(rd, event)
+            if operation == EVENT_UPDATE:
+                self._update_event(rd, event)
+
+    def _update_event(self, rd, event):
+        resource = rd.event_attributes(event)
+        associated_resources = rd.cfg.get('event_associated_resources', {})
+
+        if associated_resources:
+            to_update = itertools.chain([resource], *[
+                self._search_resource(resource_type, query % resource['id'])
+                for resource_type, query in associated_resources.items()
+            ])
+        else:
+            to_update = [resource]
+
+        for resource in to_update:
+            self._set_update_attributes(resource)
 
     def _delete_event(self, rd, event):
         ended_at = timeutils.utcnow().isoformat()
@@ -526,11 +546,24 @@ class GnocchiPublisher(publisher.ConfigPublisherBase):
             return self._gnocchi.resource.search(
                 resource_type, json.loads(query))
         except Exception:
-            LOG.error("Fail to search resource type %{resource_type}s "
-                      "with '%{query}s'",
+            LOG.error("Fail to search resource type %(resource_type)s "
+                      "with '%(query)s'",
                       {'resource_type': resource_type, 'query': query},
                       exc_info=True)
         return []
+
+    def _set_update_attributes(self, resource):
+        try:
+            resource_id = resource.pop('id')
+            resource_type = resource.pop('type')
+
+            self._if_not_cached(resource_type, resource_id, resource)
+        except gnocchi_exc.ResourceNotFound:
+            LOG.debug("Update event received on unexisting resource (%s), "
+                      "ignore it.", resource['id'])
+        except Exception:
+            LOG.error("Fail to update the resource %s", resource,
+                      exc_info=True)
 
     def _set_ended_at(self, resource, ended_at):
         try:

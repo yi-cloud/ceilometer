@@ -16,16 +16,14 @@
 import abc
 
 from oslo_utils import netutils
-import six
-from six.moves.urllib import parse as urlparse
 from stevedore import driver as _driver
+from urllib import parse as urlparse
 
 from ceilometer.polling import plugin_base
 from ceilometer import sample
 
 
-@six.add_metaclass(abc.ABCMeta)
-class _Base(plugin_base.PollsterBase):
+class _Base(plugin_base.PollsterBase, metaclass=abc.ABCMeta):
 
     NAMESPACE = 'network.statistics.drivers'
     drivers = {}

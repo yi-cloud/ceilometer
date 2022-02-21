@@ -21,7 +21,6 @@ import ceilometer.compute.discovery
 import ceilometer.compute.virt.inspector
 import ceilometer.compute.virt.libvirt.utils
 import ceilometer.compute.virt.vmware.inspector
-import ceilometer.compute.virt.xenapi.inspector
 import ceilometer.event.converter
 import ceilometer.hardware.discovery
 import ceilometer.hardware.pollsters.generic
@@ -30,7 +29,7 @@ import ceilometer.ipmi.platform.intel_node_manager
 import ceilometer.ipmi.pollsters
 import ceilometer.keystone_client
 import ceilometer.meter.notifications
-import ceilometer.middleware
+import ceilometer.monasca_opts
 import ceilometer.neutron_client
 import ceilometer.notification
 import ceilometer.nova_client
@@ -70,11 +69,11 @@ def list_opts():
     # This have been removed due to a recursive import issue
     return [
         ('DEFAULT',
-         itertools.chain(ceilometer.polling.manager.OPTS,
-                         ceilometer.compute.virt.inspector.OPTS,
+         itertools.chain(ceilometer.compute.virt.inspector.OPTS,
                          ceilometer.compute.virt.libvirt.utils.OPTS,
                          ceilometer.objectstore.swift.OPTS,
                          ceilometer.pipeline.base.OPTS,
+                         ceilometer.polling.manager.POLLING_OPTS,
                          ceilometer.sample.OPTS,
                          ceilometer.utils.OPTS,
                          OPTS)),
@@ -90,6 +89,8 @@ def list_opts():
             cfg.FloatOpt(
                 'check_watchers',
                 default=10.0,
+                deprecated_for_removal=True,
+                deprecated_reason='This parameter is no longer used.',
                 help='Number of seconds between checks to see if group '
                 'membership has changed'),
         ]),
@@ -101,6 +102,7 @@ def list_opts():
          itertools.chain(ceilometer.ipmi.platform.intel_node_manager.OPTS,
                          ceilometer.ipmi.pollsters.OPTS)),
         ('meter', ceilometer.meter.notifications.OPTS),
+        ('monasca', ceilometer.monasca_opts.OPTS),
         ('notification',
          itertools.chain(ceilometer.notification.OPTS,
                          ceilometer.notification.EXCHANGES_OPTS)),
@@ -117,7 +119,6 @@ def list_opts():
                          ceilometer.objectstore.swift.SERVICE_OPTS,
                          ceilometer.volume.discovery.SERVICE_OPTS,)),
         ('vmware', ceilometer.compute.virt.vmware.inspector.OPTS),
-        ('xenapi', ceilometer.compute.virt.xenapi.inspector.OPTS),
     ]
 
 

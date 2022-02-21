@@ -17,3 +17,15 @@ subunit.log
 
 # Files created by releasenotes build
 releasenotes/build
+
+#swap file
+*.swp
+
+#IntelJ Idea
+.idea/
+
+#venv
+venv/
+
+#Pyenv files
+.python-version

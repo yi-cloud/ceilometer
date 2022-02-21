@@ -19,10 +19,8 @@ import abc
 from oslo_config import cfg
 from oslo_log import log
 import oslo_messaging
-import six
 
 from ceilometer import agent
-from ceilometer import messaging
 from ceilometer import publisher
 
 OPTS = [
@@ -43,52 +41,6 @@ LOG = log.getLogger(__name__)
 class PipelineException(agent.ConfigException):
     def __init__(self, message, cfg):
         super(PipelineException, self).__init__('Pipeline', message, cfg)
-
-
-class InterimPublishContext(object):
-    """Publisher to hash/shard data to pipelines"""
-
-    def __init__(self, conf, mgr):
-        self.conf = conf
-        self.mgr = mgr
-        self.notifiers = self._get_notifiers(messaging.get_transport(conf))
-
-    def _get_notifiers(self, transport):
-        notifiers = []
-        for x in range(self.conf.notification.pipeline_processing_queues):
-            notifiers.append(oslo_messaging.Notifier(
-                transport,
-                driver=self.conf.publisher_notifier.telemetry_driver,
-                topics=['-'.join(
-                    [self.mgr.NOTIFICATION_IPC, self.mgr.pm_type, str(x)])]))
-        return notifiers
-
-    @staticmethod
-    def hash_grouping(datapoint, grouping_keys):
-        # FIXME(gordc): this logic only supports a single grouping_key. we
-        # need to change to support pipeline with multiple transformers and
-        # different grouping_keys
-        value = ''
-        for key in grouping_keys or []:
-            value += datapoint.get(key) if datapoint.get(key) else ''
-        return hash(value)
-
-    def __enter__(self):
-        def p(data):
-            data = [data] if not isinstance(data, list) else data
-            for datapoint in data:
-                for pipe in self.mgr.pipelines:
-                    if pipe.supported(datapoint):
-                        serialized_data = pipe.serializer(datapoint)
-                        key = (self.hash_grouping(serialized_data,
-                                                  pipe.get_grouping_key())
-                               % len(self.notifiers))
-                        self.notifiers[key].sample({}, event_type=pipe.name,
-                                                   payload=[serialized_data])
-        return p
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        pass
 
 
 class PublishContext(object):
@@ -138,33 +90,22 @@ class Sink(object):
     Each sink config is concerned *only* with the transformation rules
     and publication conduits for data.
 
-    In effect, a sink describes a chain of handlers. The chain starts
-    with zero or more transformers and ends with one or more publishers.
-
-    The first transformer in the chain is passed data from the
-    corresponding source, takes some action such as deriving rate of
-    change, performing unit conversion, or aggregating, before passing
-    the modified data to next step.
-
-    The subsequent transformers, if any, handle the data similarly.
+    In effect, a sink describes a chain of handlers. The chain ends with one or
+    more publishers.
 
     At the end of the chain, publishers publish the data. The exact
     publishing method depends on publisher type, for example, pushing
     into data storage via the message bus providing guaranteed delivery,
     or for loss-tolerant data UDP may be used.
 
-    If no transformers are included in the chain, the publishers are
-    passed data directly from the sink which are published unchanged.
     """
 
-    def __init__(self, conf, cfg, transformer_manager, publisher_manager):
+    def __init__(self, conf, cfg, publisher_manager):
         self.conf = conf
         self.cfg = cfg
 
         try:
             self.name = cfg['name']
-            # It's legal to have no transformer specified
-            self.transformer_cfg = cfg.get('transformers') or []
         except KeyError as err:
             raise PipelineException(
                 "Required field %s not specified" % err.args[0], cfg)
@@ -185,37 +126,16 @@ class Sink(object):
                           exc_info=True)
 
         self.multi_publish = True if len(self.publishers) > 1 else False
-        self.transformers = self._setup_transformers(cfg, transformer_manager)
 
     def __str__(self):
         return self.name
-
-    def _setup_transformers(self, cfg, transformer_manager):
-        transformers = []
-        for transformer in self.transformer_cfg:
-            parameter = transformer['parameters'] or {}
-            try:
-                ext = transformer_manager[transformer['name']]
-            except KeyError:
-                raise PipelineException(
-                    "No transformer named %s loaded" % transformer['name'],
-                    cfg)
-            transformers.append(ext.plugin(**parameter))
-            LOG.info(
-                "Pipeline %(pipeline)s: Setup transformer instance %(name)s "
-                "with parameter %(param)s" % ({'pipeline': self,
-                                               'name': transformer['name'],
-                                               'param': parameter}))
-
-        return transformers
 
     @staticmethod
     def flush():
         """Flush data after all events have been injected to pipeline."""
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Pipeline(object):
+class Pipeline(object, metaclass=abc.ABCMeta):
     """Represents a coupling between a sink and a corresponding source."""
 
     def __init__(self, conf, source, sink):
@@ -239,23 +159,9 @@ class Pipeline(object):
     def publish_data(self, data):
         """Publish data from pipeline."""
 
-    @abc.abstractproperty
-    def default_grouping_key(self):
-        """Attribute to hash data on. Pass if no partitioning."""
-
     @abc.abstractmethod
     def supported(self, data):
         """Attribute to filter on. Pass if no partitioning."""
-
-    @abc.abstractmethod
-    def serializer(self, data):
-        """Serialize data for interim transport. Pass if no partitioning."""
-
-    def get_grouping_key(self):
-        keys = []
-        for transformer in self.sink.transformers:
-            keys += transformer.grouping_keys
-        return list(set(keys)) or self.default_grouping_key
 
 
 class PublisherManager(object):
@@ -279,9 +185,7 @@ class PipelineManager(agent.ConfigManagerBase):
     Pipeline manager sets up pipelines according to config file
     """
 
-    NOTIFICATION_IPC = 'ceilometer_ipc'
-
-    def __init__(self, conf, cfg_file, transformer_manager, partition):
+    def __init__(self, conf, cfg_file):
         """Setup the pipelines according to config.
 
         The configuration is supported as follows:
@@ -305,13 +209,6 @@ class PipelineManager(agent.ConfigManagerBase):
                      },
                     ],
          "sinks": [{"name": sink_1,
-                    "transformers": [
-                           {"name": "Transformer_1",
-                         "parameters": {"p1": "value"}},
-
-                           {"name": "Transformer_2",
-                            "parameters": {"p1": "value"}},
-                          ],
                      "publishers": ["publisher_1", "publisher_2"]
                     },
                     {"name": sink_2,
@@ -329,8 +226,6 @@ class PipelineManager(agent.ConfigManagerBase):
         "excluded meter names", wildcard and "excluded meter names", or
         only wildcard.
 
-        Transformer's name is plugin name in setup.cfg.
-
         Publisher's name is plugin name in setup.cfg
 
         """
@@ -340,7 +235,6 @@ class PipelineManager(agent.ConfigManagerBase):
         if not ('sources' in cfg and 'sinks' in cfg):
             raise PipelineException("Both sources & sinks are required",
                                     cfg)
-        LOG.info('detected decoupled pipeline config format')
         publisher_manager = PublisherManager(self.conf, self.pm_type)
 
         unique_names = set()
@@ -364,7 +258,6 @@ class PipelineManager(agent.ConfigManagerBase):
             else:
                 unique_names.add(name)
                 sinks[s['name']] = self.pm_sink(self.conf, s,
-                                                transformer_manager,
                                                 publisher_manager)
         unique_names.clear()
 
@@ -381,7 +274,6 @@ class PipelineManager(agent.ConfigManagerBase):
                     unique_names.add(pipe.name)
                     self.pipelines.append(pipe)
         unique_names.clear()
-        self.partition = partition
 
     @abc.abstractproperty
     def pm_type(self):
@@ -403,21 +295,8 @@ class PipelineManager(agent.ConfigManagerBase):
         """Build publisher for pipeline publishing."""
         return PublishContext(self.pipelines)
 
-    def interim_publisher(self):
-        """Build publishing context for IPC."""
-        return InterimPublishContext(self.conf, self)
-
-    def get_main_publisher(self):
-        """Return the publishing context to use"""
-        return (self.interim_publisher() if self.partition else
-                self.publisher())
-
     def get_main_endpoints(self):
         """Return endpoints for main queue."""
-        pass
-
-    def get_interim_endpoints(self):
-        """Return endpoints for interim pipeline queues."""
         pass
 
 
@@ -451,14 +330,10 @@ class NotificationEndpoint(object):
         # for the generic notification exchange we have to consume all its
         # queues
 
-
-class MainNotificationEndpoint(NotificationEndpoint):
-    """Listens to queues on all priority levels and clears by default."""
-
-    audit = NotificationEndpoint._consume_and_drop
-    critical = NotificationEndpoint._consume_and_drop
-    debug = NotificationEndpoint._consume_and_drop
-    error = NotificationEndpoint._consume_and_drop
-    info = NotificationEndpoint._consume_and_drop
-    sample = NotificationEndpoint._consume_and_drop
-    warn = NotificationEndpoint._consume_and_drop
+    audit = _consume_and_drop
+    critical = _consume_and_drop
+    debug = _consume_and_drop
+    error = _consume_and_drop
+    info = _consume_and_drop
+    sample = _consume_and_drop
+    warn = _consume_and_drop
