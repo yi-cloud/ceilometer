@@ -109,6 +109,7 @@ resources:
       flavor_id: resource_metadata.(instance_flavor_id|(flavor.id)|flavor_id)
       flavor_name: resource_metadata.(instance_type|(flavor.name)|flavor_name)
       server_group: resource_metadata.user_metadata.server_group
+      cluster_id: resource_metadata.user_metadata.cluster_id
     event_delete: compute.instance.delete.start
     event_create: compute.instance.create.end
     event_attributes:
@@ -145,6 +146,7 @@ resources:
     attributes:
       name: resource_metadata.vnic_name
       instance_id: resource_metadata.instance_id
+      cluster_id: resource_metadata.user_metadata.cluster_id
 
   - resource_type: instance_disk
     metrics:
@@ -166,6 +168,7 @@ resources:
     attributes:
       name: resource_metadata.disk_name
       instance_id: resource_metadata.instance_id
+      cluster_id: resource_metadata.user_metadata.cluster_id
 
   - resource_type: image
     metrics:

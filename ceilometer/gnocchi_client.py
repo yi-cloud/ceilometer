@@ -67,16 +67,22 @@ resources_initial = {
                          "required": True},
         "server_group": {"type": "string", "min_length": 0, "max_length": 255,
                          "required": False},
+        "cluster_id": {"type": "string", "min_length": 0, "max_length": 255,
+                       "required": False},
     },
     "instance_disk": {
         "name": {"type": "string", "min_length": 0, "max_length": 255,
                  "required": True},
         "instance_id": {"type": "uuid", "required": True},
+        "cluster_id": {"type": "string", "min_length": 0, "max_length": 255,
+                       "required": False},
     },
     "instance_network_interface": {
         "name": {"type": "string", "min_length": 0, "max_length": 255,
                  "required": True},
         "instance_id": {"type": "uuid", "required": True},
+        "cluster_id": {"type": "string", "min_length": 0, "max_length": 255,
+                       "required": False},
     },
     "volume": {
         "display_name": {"type": "string", "min_length": 0, "max_length": 255,
@@ -246,6 +252,30 @@ resources_update_operations = [
      "data": [{
          "attributes": {}
      }]},
+    {"desc": "add cluster_id to instance",
+     "type": "update_attribute_type",
+     "resource_type": "instance",
+     "data": [{
+         "op": "add",
+         "path": "/attributes/cluster_id",
+         "value": {"type": "string", "min_length": 0, "max_length": 255, "required": False}},
+     ]},
+    {"desc": "add cluster_id to instance_disk",
+     "type": "update_attribute_type",
+     "resource_type": "instance_disk",
+     "data": [{
+         "op": "add",
+         "path": "/attributes/cluster_id",
+         "value": {"type": "string", "min_length": 0, "max_length": 255, "required": False}},
+     ]},
+    {"desc": "add cluster_id to instance_network_interface",
+     "type": "update_attribute_type",
+     "resource_type": "instance_network_interface",
+     "data": [{
+         "op": "add",
+         "path": "/attributes/cluster_id",
+         "value": {"type": "string", "min_length": 0, "max_length": 255, "required": False}},
+     ]},
 ]
 
 # NOTE(sileht): We use LooseVersion because pbr can generate invalid
